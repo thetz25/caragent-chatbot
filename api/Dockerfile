@@ -1,5 +1,8 @@
 FROM node:20-alpine
 
+# Install required libraries for Prisma
+RUN apk add --no-cache openssl libssl3
+
 WORKDIR /app
 
 COPY package*.json ./
@@ -15,5 +18,5 @@ RUN npx tsc
 
 EXPOSE 3000
 
-# Run the compiled JavaScript (not ts-node)
+# Run the compiled JavaScript
 CMD ["node", "dist/index.js"]

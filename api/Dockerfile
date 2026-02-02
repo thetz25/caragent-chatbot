@@ -1,7 +1,7 @@
 FROM node:20-alpine
 
-# Install required libraries for Prisma
-RUN apk add --no-cache openssl libssl3
+# Install required libraries for Prisma and health checks
+RUN apk add --no-cache openssl libssl3 wget
 
 WORKDIR /app
 

@@ -1,0 +1,95 @@
+version: '3.8'
+
+# Production Docker Compose Configuration
+# Includes: API, Database, Caddy (reverse proxy with HTTPS), and monitoring
+
+services:
+  # Reverse Proxy with Automatic HTTPS (Caddy)
+  caddy:
+    build: ./caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+      - caddy-logs:/var/log/caddy
+    depends_on:
+      - api
+    networks:
+      - app-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # API Application
+  api:
+    build: ./api
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/mitsubishi_chatbot?schema=public
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - META_PAGE_ACCESS_TOKEN=${META_PAGE_ACCESS_TOKEN}
+      - META_VERIFY_TOKEN=${META_VERIFY_TOKEN}
+      - META_APP_SECRET=${META_APP_SECRET}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - RATE_LIMIT_MAX=100
+      - RATE_LIMIT_WINDOW=1 minute
+      - WEBHOOK_RATE_LIMIT_MAX=1000
+      - WEBHOOK_RATE_LIMIT_WINDOW=1 minute
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # Database
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: mitsubishi_chatbot
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:
+  caddy-logs:

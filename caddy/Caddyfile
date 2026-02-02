@@ -1,0 +1,64 @@
+# Caddy Configuration for Production
+# Automatic HTTPS via Let's Encrypt
+
+# Your domain name here
+{$DOMAIN:localhost} {
+    # Enable compression
+    encode gzip
+
+    # Security headers
+    header {
+        # Enable HSTS
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # Prevent MIME type sniffing
+        X-Content-Type-Options "nosniff"
+        # XSS protection
+        X-Frame-Options "DENY"
+        X-XSS-Protection "1; mode=block"
+        # Referrer policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Content Security Policy
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://graph.facebook.com https://api.openai.com;"
+    }
+
+    # Reverse proxy to the API
+    reverse_proxy api:3000 {
+        # Health check
+        health_uri /health
+        health_interval 30s
+        health_timeout 5s
+        
+        # Headers
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+        
+        # Timeouts
+        transport http {
+            read_buffer 8192
+            write_buffer 8192
+            dial_timeout 30s
+        }
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+    }
+
+    # Handle errors
+    handle_errors {
+        respond "{http.error.status_code} {http.error.status_text}"
+    }
+}
+
+# WWW redirect (if using www subdomain)
+www.{$DOMAIN:localhost} {
+    redir https://{$DOMAIN:localhost}{uri} permanent
+}

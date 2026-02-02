@@ -109,7 +109,7 @@ mkdir -p ~/mitsubishi-chatbot
 cd ~/mitsubishi-chatbot
 
 # Create subdirectories
-mkdir -p api caddy
+mkdir -p api nginx
 ```
 
 ### Step 6: Transfer Project Files
@@ -162,7 +162,7 @@ ls -la
 
 # Should see:
 # - api/
-# - caddy/
+# - nginx/
 # - docker-compose.prod.yml
 # - .env.example
 # - README files
@@ -249,8 +249,7 @@ ls -la .env
 
 # Add .env to .gitignore if using git
 echo ".env" >> .gitignore
-echo "caddy-data/" >> .gitignore
-echo "caddy-config/" >> .gitignore
+echo "nginx-logs/" >> .gitignore
 echo "db-data/" >> .gitignore
 ```
 
@@ -269,8 +268,36 @@ docker-compose -f docker-compose.prod.yml up -d
 # This will:
 # - Build the API Docker image
 # - Start PostgreSQL database
-# - Start Caddy reverse proxy
-# - Generate SSL certificates automatically
+# - Expose API on port 3000 for Nginx reverse proxy
+```
+
+### Step 10.5: Configure Nginx (If Nginx is already running on your VPS)
+
+If Nginx is already installed and running on your VPS (using ports 80/443), you'll use Nginx as the reverse proxy instead of running Caddy in a container:
+
+```bash
+# 1. Copy the Nginx configuration to your VPS
+sudo cp ~/mitsubishi-chatbot/nginx/caragent-chatbot.conf /etc/nginx/sites-available/caragent-chatbot
+
+# 2. Edit the configuration with your domain and SSL paths
+sudo nano /etc/nginx/sites-available/caragent-chatbot
+# Change: server_name _; → server_name yourdomain.com;
+# Update SSL certificate paths if you have them already
+
+# 3. Enable the site
+sudo ln -s /etc/nginx/sites-available/caragent-chatbot /etc/nginx/sites-enabled/
+
+# 4. Test Nginx configuration
+sudo nginx -t
+
+# 5. Reload Nginx
+sudo systemctl reload nginx
+```
+
+**To obtain SSL certificates with Let's Encrypt:**
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d yourdomain.com
 ```
 
 ### Step 11: Check Service Status
@@ -279,8 +306,7 @@ docker-compose -f docker-compose.prod.yml up -d
 # View running containers
 docker-compose -f docker-compose.prod.yml ps
 
-# You should see 3 containers running:
-# - mitsubishi-chatbot_caddy_1
+# You should see 2 containers running:
 # - mitsubishi-chatbot_api_1
 # - mitsubishi-chatbot_db_1
 
@@ -289,7 +315,6 @@ docker-compose -f docker-compose.prod.yml logs -f
 
 # Check specific service logs
 docker-compose -f docker-compose.prod.yml logs -f api
-docker-compose -f docker-compose.prod.yml logs -f caddy
 docker-compose -f docker-compose.prod.yml logs -f db
 ```
 
@@ -376,6 +401,10 @@ echo | openssl s_client -servername chatbot.yourdomain.com -connect chatbot.your
 # notBefore=Feb 2 00:00:00 2026 GMT
 # notAfter=May 3 00:00:00 2026 GMT
 ```
+
+**Note:** If using Let's Encrypt with Nginx, certificates are stored at:
+- `/etc/letsencrypt/live/yourdomain.com/fullchain.pem`
+- `/etc/letsencrypt/live/yourdomain.com/privkey.pem`
 
 ---
 
@@ -619,8 +648,10 @@ cat > ~/MAINTENANCE.md << 'EOF'
 ```bash
 cd ~/mitsubishi-chatbot
 docker-compose -f docker-compose.prod.yml logs -f api
-docker-compose -f docker-compose.prod.yml logs -f caddy
 docker-compose -f docker-compose.prod.yml logs -f db
+
+# For Nginx logs (if using system Nginx)
+sudo tail -f /var/log/nginx/caragent-chatbot-*.log
 ```
 
 ### Restart Services
@@ -666,9 +697,12 @@ curl https://chatbot.yourdomain.com/metrics
 3. Check database: `docker-compose -f docker-compose.prod.yml exec db pg_isready`
 
 ### If SSL certificate issues:
-1. Check Caddy logs: `docker-compose -f docker-compose.prod.yml logs caddy`
-2. Restart Caddy: `docker-compose -f docker-compose.prod.yml restart caddy`
-3. Verify domain DNS points to this server
+1. Check Nginx error logs: `sudo tail -f /var/log/nginx/caragent-chatbot-error.log`
+2. Check Nginx configuration: `sudo nginx -t`
+3. Verify SSL certificate paths in `/etc/nginx/sites-available/caragent-chatbot`
+4. If using Let's Encrypt, renew certificates: `sudo certbot renew --dry-run`
+5. Restart Nginx: `sudo systemctl restart nginx`
+6. Verify domain DNS points to this server
 
 ### If Facebook webhook not working:
 1. Check webhook URL is correct in Facebook settings
@@ -678,8 +712,10 @@ curl https://chatbot.yourdomain.com/metrics
 ## Important Files
 - Environment: `~/mitsubishi-chatbot/.env`
 - Backups: `~/backups/`
-- Logs: Check with `docker-compose logs`
-- SSL Certs: Managed by Caddy automatically
+- Docker Logs: Check with `docker-compose logs`
+- Nginx Config: `/etc/nginx/sites-available/caragent-chatbot`
+- Nginx Logs: `/var/log/nginx/caragent-chatbot-*.log`
+- SSL Certs: `/etc/letsencrypt/live/YOUR_DOMAIN/` (if using Let's Encrypt)
 
 ## Support Contacts
 - Developer: [Your Name] - [Your Email]
@@ -707,7 +743,7 @@ EOF
 ### What's Running Now
 
 1. **API Server** (Node.js/Fastify)
-   - Port 3000 (internal)
+   - Port 3000 (exposed on localhost for Nginx)
    - Handles webhook requests
    - AI-powered responses
 
@@ -715,10 +751,10 @@ EOF
    - Stores car data, quotes, sessions, FAQs
    - Persistent storage
 
-3. **Caddy Reverse Proxy**
+3. **Nginx Reverse Proxy** (system service)
    - Port 80/443 (public)
-   - Automatic HTTPS
-   - Security headers
+   - SSL termination
+   - Security headers and gzip compression
 
 ### Access Points
 
@@ -768,16 +804,23 @@ docker-compose -f docker-compose.prod.yml restart
 ufw status
 ```
 
-### Issue 2: SSL Certificate Not Generated
+### Issue 2: SSL Certificate Issues
 ```bash
-# Check Caddy logs
-docker-compose -f docker-compose.prod.yml logs caddy
+# Check Nginx error logs
+sudo tail -f /var/log/nginx/caragent-chatbot-error.log
 
 # Verify domain points to server
 dig +short chatbot.yourdomain.com
 
-# Restart Caddy
-docker-compose -f docker-compose.prod.yml restart caddy
+# Test Nginx configuration
+sudo nginx -t
+
+# Restart Nginx
+sudo systemctl restart nginx
+
+# If using Let's Encrypt, check certificate status
+sudo certbot certificates
+sudo certbot renew --dry-run
 ```
 
 ### Issue 3: Database Connection Failed

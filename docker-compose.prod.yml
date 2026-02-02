@@ -21,6 +21,10 @@ services:
       - RATE_LIMIT_WINDOW=1 minute
       - WEBHOOK_RATE_LIMIT_MAX=1000
       - WEBHOOK_RATE_LIMIT_WINDOW=1 minute
+      - ADMIN_API_KEY=${ADMIN_API_KEY:-default-admin-key-change-in-production}
+      - UPLOAD_DIR=/app/uploads
+    volumes:
+      - uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -68,3 +72,4 @@ networks:
 
 volumes:
   db-data:
+  uploads:

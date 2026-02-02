@@ -7,7 +7,10 @@ RUN npm install
 
 COPY . .
 
-# Compile TypeScript (if fails, container will show error)
+# Generate Prisma Client (needed for TypeScript types)
+RUN npx prisma generate
+
+# Compile TypeScript
 RUN npx tsc
 
 EXPOSE 3000

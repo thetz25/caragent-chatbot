@@ -1,36 +1,14 @@
 version: '3.8'
 
 # Production Docker Compose Configuration
-# Includes: API, Database, Caddy (reverse proxy with HTTPS), and monitoring
+# Uses Nginx on host instead of Caddy container
 
 services:
-  # Reverse Proxy with Automatic HTTPS (Caddy)
-  caddy:
-    build: ./caddy
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-    environment:
-      - DOMAIN=${DOMAIN:-localhost}
-    volumes:
-      - caddy-data:/data
-      - caddy-config:/config
-      - caddy-logs:/var/log/caddy
-    depends_on:
-      - api
-    networks:
-      - app-network
-    restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
   # API Application
   api:
     build: ./api
+    ports:
+      - "3000:3000"  # Exposed for Nginx to proxy to
     environment:
       - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/mitsubishi_chatbot?schema=public
       - NODE_ENV=production
@@ -90,6 +68,3 @@ networks:
 
 volumes:
   db-data:
-  caddy-data:
-  caddy-config:
-  caddy-logs:

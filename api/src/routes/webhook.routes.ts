@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { MessengerService } from '../services/messenger.service';
-import { catalogService } from '../services/catalog.service';
+import { catalogService, CarModelWithVariants } from '../services/catalog.service';
 import { quoteFlowService } from '../services/quote-flow.service';
 import { createLLMService, LLMConfig } from '../services/llm.service';
 import { ragService } from '../services/rag.service';
@@ -169,7 +169,7 @@ async function handleMessagingEvent(
             }
 
             // Try to find a specific model
-            const model = await catalogService.getModelByName(entities?.model || messageText);
+            const model: CarModelWithVariants | null = await catalogService.getModelByName(entities?.model || messageText);
             if (model && !intent) {
                 let response = `🚗 *${model.name}*\n${model.description || ''}\n\n*Variants:*\n`;
                 model.variants.forEach((v) => {
@@ -270,7 +270,7 @@ async function handlePhotosRequest(
         }
 
         // Try to find model
-        const model = await catalogService.getModelByName(query);
+        const model: CarModelWithVariants | null = await catalogService.getModelByName(query);
         if (!model) {
             await messenger.sendTextMessage(
                 senderId,

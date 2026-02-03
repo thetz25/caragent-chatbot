@@ -568,7 +568,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
                     question,
                     answer,
                     category,
-                    keywords: [question?.toLowerCase(), answer?.toLowerCase(), category?.toLowerCase()]
+                    keywords: [(question ?? '').toLowerCase(), (answer ?? '').toLowerCase(), (category ?? '').toLowerCase()]
                 }
             });
 

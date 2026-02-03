@@ -427,7 +427,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
             await prisma.carMedia.deleteMany({ where: { variantId } });
             
             // Delete the variant
-            await prisma.carVariant.delete({ where: { id: variant.id } });
+            await prisma.carVariant.delete({ where: { id: variantId } });
 
             reply.send({ success: true, message: 'Variant deleted successfully' });
         } catch (error) {
@@ -497,7 +497,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
     fastify.get('/faqs', async (request: FastifyRequest, reply: FastifyReply) => {
         if (!(await authenticateAdmin(request, reply))) return;
 
-        const faqs = await prisma.FAQ.findMany({
+        const faqs = await prisma.fAQ.findMany({
             orderBy: { category: 'asc', question: 'asc' }
         });
 
@@ -515,7 +515,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         try {
             const { question, answer, category } = request.body;
 
-            const faq = await prisma.FAQ.create({
+            const faq = await prisma.fAQ.create({
                 data: {
                     question,
                     answer,
@@ -538,7 +538,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         try {
             const faqId = parseInt(request.params.id);
             
-            await prisma.FAQ.delete({ where: { id: faqId } });
+            await prisma.fAQ.delete({ where: { id: faqId } });
 
             reply.send({ success: true, message: 'FAQ deleted successfully' });
         } catch (error) {
@@ -562,7 +562,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
             const faqId = parseInt(request.params.id);
             const { question, answer, category } = request.body;
 
-            const faq = await prisma.FAQ.update({
+            const faq = await prisma.fAQ.update({
                 where: { id: faqId },
                 data: {
                     question,

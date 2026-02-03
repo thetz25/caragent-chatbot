@@ -24,7 +24,18 @@ const start = async () => {
     try {
         // Security middleware
         await server.register(cors);
-        await server.register(helmet);
+        await server.register(helmet, {
+            contentSecurityPolicy: {
+                directives: {
+                    defaultSrc: ["'self'"],
+                    scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+                    scriptSrcAttr: ["'self'", "'unsafe-inline'"],
+                    styleSrc: ["'self'", "'unsafe-inline'"],
+                    imgSrc: ["'self'", "data:", "blob:", "*"],
+                    connectSrc: ["'self'"],
+                },
+            },
+        });
 
         // Rate limiting
         await setupRateLimiting(server);

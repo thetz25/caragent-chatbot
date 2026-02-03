@@ -16,6 +16,12 @@ export interface QuoteSessionState {
     };
 }
 
+export interface QuoteFlowResponse {
+    message: string;
+    state: QuoteSessionState;
+    quickReplies?: Array<{ title: string; payload: string }>;
+}
+
 export enum QuoteStep {
     IDLE = 'IDLE',
     ASK_VARIANT = 'ASK_VARIANT',
@@ -78,7 +84,7 @@ export class QuoteFlowService {
     /**
      * Start quote flow
      */
-    async startQuoteFlow(userId: string, variantQuery?: string): Promise<{ message: string; state: QuoteSessionState }> {
+    async startQuoteFlow(userId: string, variantQuery?: string): Promise<QuoteFlowResponse> {
         const state: QuoteSessionState = {
             step: QuoteStep.ASK_VARIANT,
             context: {},
@@ -95,8 +101,12 @@ export class QuoteFlowService {
                 await this.updateSession(userId, state);
 
                 return {
-                    message: `Great! I found the *${state.context.variantName}*.\n\nWould you like:\n1️⃣ Cash purchase\n2️⃣ Financing`,
+                    message: `Great! I found the *${state.context.variantName}*.\n\nHow would you like to purchase?`,
                     state,
+                    quickReplies: [
+                        { title: '💵 Cash Purchase', payload: 'PAYMENT_CASH' },
+                        { title: '💳 Financing', payload: 'PAYMENT_FINANCING' }
+                    ]
                 };
             }
         }
@@ -112,7 +122,7 @@ export class QuoteFlowService {
     /**
      * Process message based on current step
      */
-    async processMessage(userId: string, message: string): Promise<{ message: string; state: QuoteSessionState }> {
+    async processMessage(userId: string, message: string): Promise<QuoteFlowResponse> {
         const state = await this.getSession(userId);
         const lowerMessage = message.toLowerCase().trim();
 
@@ -153,7 +163,7 @@ export class QuoteFlowService {
         userId: string,
         message: string,
         state: QuoteSessionState
-    ): Promise<{ message: string; state: QuoteSessionState }> {
+    ): Promise<QuoteFlowResponse> {
         const variant = await catalogService.searchVariantByName(message);
 
         if (!variant) {
@@ -170,8 +180,12 @@ export class QuoteFlowService {
         await this.updateSession(userId, state);
 
         return {
-            message: `Perfect! I found the *${state.context.variantName}*.\n\nSRP: ₱${Number(variant.srp).toLocaleString('en-PH')}\n\nHow would you like to purchase?\n\n1️⃣ *Cash* - Full payment\n2️⃣ *Financing* - Monthly payments`,
+            message: `Perfect! I found the *${state.context.variantName}*.\n\nSRP: ₱${Number(variant.srp).toLocaleString('en-PH')}\n\nHow would you like to purchase?`,
             state,
+            quickReplies: [
+                { title: '💵 Cash Purchase', payload: 'PAYMENT_CASH' },
+                { title: '💳 Financing', payload: 'PAYMENT_FINANCING' }
+            ]
         };
     }
 
@@ -182,30 +196,39 @@ export class QuoteFlowService {
         userId: string,
         message: string,
         state: QuoteSessionState
-    ): Promise<{ message: string; state: QuoteSessionState }> {
+    ): Promise<QuoteFlowResponse> {
         const lowerMessage = message.toLowerCase();
 
-        if (['cash', '1', 'full', 'one'].includes(lowerMessage)) {
+        if (['cash', '1', 'full', 'one', 'payment_cash'].includes(lowerMessage)) {
             state.context.paymentType = 'cash';
             state.step = QuoteStep.GENERATE_QUOTE;
             await this.updateSession(userId, state);
             return this.generateQuote(userId, state);
         }
 
-        if (['financing', 'finance', '2', 'monthly', 'installment', 'two'].includes(lowerMessage)) {
+        if (['financing', 'finance', '2', 'monthly', 'installment', 'two', 'payment_financing'].includes(lowerMessage)) {
             state.context.paymentType = 'financing';
             state.step = QuoteStep.ASK_DOWN_PAYMENT;
             await this.updateSession(userId, state);
 
             return {
-                message: `Great! Let's set up financing.\n\nWhat down payment percentage?\n\nTypical options:\n• 20% (minimum)\n• 30%\n• 50%\n\nJust reply with a number (e.g., "30" for 30%)`,
+                message: `Great! Let's set up financing.\n\nWhat down payment percentage would you like?`,
                 state,
+                quickReplies: [
+                    { title: '20% (Minimum)', payload: 'DOWN_PAYMENT_20' },
+                    { title: '30%', payload: 'DOWN_PAYMENT_30' },
+                    { title: '50%', payload: 'DOWN_PAYMENT_50' }
+                ]
             };
         }
 
         return {
-            message: `Please choose:\n1️⃣ Cash (type "cash")\n2️⃣ Financing (type "financing")`,
+            message: `Please choose your payment method:`,
             state,
+            quickReplies: [
+                { title: '💵 Cash Purchase', payload: 'PAYMENT_CASH' },
+                { title: '💳 Financing', payload: 'PAYMENT_FINANCING' }
+            ]
         };
     }
 
@@ -216,13 +239,26 @@ export class QuoteFlowService {
         userId: string,
         message: string,
         state: QuoteSessionState
-    ): Promise<{ message: string; state: QuoteSessionState }> {
-        const percentage = parseInt(message.replace('%', '').trim());
+    ): Promise<QuoteFlowResponse> {
+        // Check if it's a quick reply payload
+        let percentage: number;
+        const lowerMessage = message.toLowerCase();
+        
+        if (lowerMessage.startsWith('down_payment_')) {
+            percentage = parseInt(lowerMessage.replace('down_payment_', ''));
+        } else {
+            percentage = parseInt(message.replace('%', '').trim());
+        }
 
         if (isNaN(percentage) || percentage < 0 || percentage > 100) {
             return {
-                message: `Please enter a valid percentage between 0 and 100.\n\nExamples: "20", "30", "50"`,
+                message: `Please enter a valid percentage between 0 and 100, or select one of the options.`,
                 state,
+                quickReplies: [
+                    { title: '20% (Minimum)', payload: 'DOWN_PAYMENT_20' },
+                    { title: '30%', payload: 'DOWN_PAYMENT_30' },
+                    { title: '50%', payload: 'DOWN_PAYMENT_50' }
+                ]
             };
         }
 
@@ -231,8 +267,15 @@ export class QuoteFlowService {
         await this.updateSession(userId, state);
 
         return {
-            message: `Down payment: ${percentage}%\n\nNow choose your financing term:\n\n• 12 months (1 year)\n• 24 months (2 years)\n• 36 months (3 years)\n• 48 months (4 years)\n• 60 months (5 years)\n\nJust reply with the number of months (e.g., "36")`,
+            message: `Down payment: ${percentage}%\n\nNow choose your financing term:`,
             state,
+            quickReplies: [
+                { title: '12 months (1 year)', payload: 'TERM_12' },
+                { title: '24 months (2 years)', payload: 'TERM_24' },
+                { title: '36 months (3 years)', payload: 'TERM_36' },
+                { title: '48 months (4 years)', payload: 'TERM_48' },
+                { title: '60 months (5 years)', payload: 'TERM_60' }
+            ]
         };
     }
 
@@ -243,14 +286,30 @@ export class QuoteFlowService {
         userId: string,
         message: string,
         state: QuoteSessionState
-    ): Promise<{ message: string; state: QuoteSessionState }> {
-        const months = parseInt(message.trim());
+    ): Promise<QuoteFlowResponse> {
+        // Check if it's a quick reply payload
+        let months: number;
+        const lowerMessage = message.toLowerCase();
+        
+        if (lowerMessage.startsWith('term_')) {
+            months = parseInt(lowerMessage.replace('term_', ''));
+        } else {
+            months = parseInt(message.trim());
+        }
+        
         const validTerms = [12, 24, 36, 48, 60];
 
         if (!validTerms.includes(months)) {
             return {
-                message: `Please choose a valid term: 12, 24, 36, 48, or 60 months.`,
+                message: `Please choose a valid term:`,
                 state,
+                quickReplies: [
+                    { title: '12 months (1 year)', payload: 'TERM_12' },
+                    { title: '24 months (2 years)', payload: 'TERM_24' },
+                    { title: '36 months (3 years)', payload: 'TERM_36' },
+                    { title: '48 months (4 years)', payload: 'TERM_48' },
+                    { title: '60 months (5 years)', payload: 'TERM_60' }
+                ]
             };
         }
 
@@ -267,7 +326,7 @@ export class QuoteFlowService {
     private async generateQuote(
         userId: string,
         state: QuoteSessionState
-    ): Promise<{ message: string; state: QuoteSessionState }> {
+    ): Promise<QuoteFlowResponse> {
         if (!state.context.variantId) {
             return {
                 message: 'Error: No variant selected. Please start over with "quote".',

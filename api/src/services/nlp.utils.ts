@@ -359,3 +359,36 @@ export function generateNotFoundMessage(
     
     return message;
 }
+
+/**
+ * Generate quick reply suggestions from available options
+ * @param query - User's search query
+ * @param availableOptions - List of available options
+ * @param maxSuggestions - Maximum number of suggestions to return (default 3)
+ * @returns Array of quick reply objects or undefined if no matches
+ */
+export function generateQuickReplySuggestions(
+    query: string,
+    availableOptions: string[],
+    maxSuggestions: number = 3
+): Array<{ title: string; payload: string }> | undefined {
+    if (!query || availableOptions.length === 0) return undefined;
+    
+    // Find closest matches for suggestions
+    const suggestions = availableOptions
+        .map(option => ({
+            option,
+            score: calculateSimilarity(query.toLowerCase(), option.toLowerCase())
+        }))
+        .filter(item => item.score > 0.4)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, maxSuggestions)
+        .map(item => item.option);
+    
+    if (suggestions.length === 0) return undefined;
+    
+    return suggestions.map(suggestion => ({
+        title: suggestion.length > 20 ? suggestion.substring(0, 17) + '...' : suggestion,
+        payload: `SELECT_${suggestion.toUpperCase().replace(/\s+/g, '_')}`
+    }));
+}

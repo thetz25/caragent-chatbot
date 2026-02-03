@@ -13,7 +13,8 @@ import {
     isPhotoRequest,
     isSpecRequest,
     isQuoteRequest,
-    generateNotFoundMessage
+    generateNotFoundMessage,
+    generateQuickReplySuggestions
 } from '../services/nlp.utils';
 
 interface WebhookQuery {
@@ -30,6 +31,9 @@ interface MessagingEvent {
         mid: string;
         text?: string;
         attachments?: Array<{ type: string; payload: { url: string } }>;
+        quick_reply?: {
+            payload: string;
+        };
     };
     postback?: {
         title: string;
@@ -117,7 +121,11 @@ async function handleMessagingEvent(
             const inQuoteFlow = await quoteFlowService.isInQuoteFlow(senderId);
             if (inQuoteFlow && !['hi', 'hello', 'start', 'models', 'cars'].includes(lowerMessage)) {
                 const result = await quoteFlowService.processMessage(senderId, messageText);
-                await messenger.sendTextMessage(senderId, result.message);
+                if (result.quickReplies) {
+                    await messenger.sendQuickReplies(senderId, result.message, result.quickReplies);
+                } else {
+                    await messenger.sendTextMessage(senderId, result.message);
+                }
                 return;
             }
 
@@ -146,9 +154,15 @@ async function handleMessagingEvent(
 
             // Greetings - warm and conversational
             if (intent === 'greeting' || lowerMessage.includes('hi') || lowerMessage.includes('hello') || lowerMessage.includes('hey') || lowerMessage === 'start') {
-                await messenger.sendTextMessage(
+                await messenger.sendQuickReplies(
                     senderId,
-                    `Hey there! 👋 Welcome to Mitsubishi Motors! I'm your virtual assistant and I'm super excited to help you find your dream car! 🚗💨\n\nYou can chat with me naturally - ask me things like:\n\n🚙 "What Mitsubishi models do you have?"\n📸 "Show me photos of the Xpander"\n📋 "Tell me about Montero Sport specs"\n💰 "How much is the Mirage?"\n❓ "What's included in the warranty?"\n\nOr just tell me what you're looking for and I'll help you out! What brings you here today? 😊`
+                    `Hey there! 👋 Welcome to Mitsubishi Motors! I'm your virtual assistant and I'm super excited to help you find your dream car! 🚗💨\n\nWhat would you like to do today?`,
+                    [
+                        { title: '🚙 Browse Models', payload: 'SHOW_MODELS' },
+                        { title: '💰 Get a Quote', payload: 'GET_QUOTE' },
+                        { title: '📸 View Photos', payload: 'VIEW_PHOTOS' },
+                        { title: '❓ Ask Questions', payload: 'ASK_QUESTIONS' }
+                    ]
                 );
                 return;
             }
@@ -175,7 +189,11 @@ async function handleMessagingEvent(
                 // Priority: 1. LLM entity, 2. Extracted query from message
                 const variantQuery = entities?.variant || entities?.model || extractQuoteQuery(messageText) || undefined;
                 const result = await quoteFlowService.startQuoteFlow(senderId, variantQuery);
-                await messenger.sendTextMessage(senderId, result.message);
+                if (result.quickReplies) {
+                    await messenger.sendQuickReplies(senderId, result.message, result.quickReplies);
+                } else {
+                    await messenger.sendTextMessage(senderId, result.message);
+                }
                 return;
             }
 
@@ -261,7 +279,12 @@ async function handleMessagingEvent(
             );
         } else if (event.postback) {
             fastify.log.info({ senderId, postback: event.postback }, 'Received postback');
-            await messenger.sendTextMessage(senderId, `You clicked: ${event.postback.title}`);
+            await handlePostback(senderId, event.postback.payload, messenger, fastify);
+        } else if (event.message?.quick_reply) {
+            // Handle quick reply responses
+            const payload = event.message.quick_reply.payload;
+            fastify.log.info({ senderId, quickReply: payload }, 'Received quick reply');
+            await handleQuickReply(senderId, payload, messenger, fastify);
         }
     } catch (error) {
         fastify.log.error({ error, senderId }, 'Error handling message');
@@ -362,9 +385,19 @@ async function handleSpecsRequest(
             const allVariants = await catalogService.getAllVariants();
             const variantNames = allVariants.map(v => `${v.model.name} ${v.name}`);
             
-            // Generate conversational error message
-            const errorMessage = generateNotFoundMessage(query, variantNames.slice(0, 20), 'variant');
-            await messenger.sendTextMessage(senderId, errorMessage);
+            // Generate quick reply suggestions
+            const quickReplies = generateQuickReplySuggestions(query, variantNames.slice(0, 20), 10);
+            
+            if (quickReplies && quickReplies.length > 0) {
+                await messenger.sendQuickReplies(
+                    senderId,
+                    `I couldn't find "${query}". Did you mean one of these?`,
+                    quickReplies
+                );
+            } else {
+                const errorMessage = generateNotFoundMessage(query, variantNames.slice(0, 20), 'variant');
+                await messenger.sendTextMessage(senderId, errorMessage);
+            }
             return;
         }
 
@@ -414,5 +447,115 @@ async function handleSpecsRequest(
     } catch (error) {
         fastify.log.error({ error, senderId, query }, 'Error handling specs request');
         await messenger.sendTextMessage(senderId, 'Sorry, couldn\'t load specifications. Please try again.');
+    }
+}
+
+async function handleQuickReply(
+    senderId: string,
+    payload: string,
+    messenger: MessengerService,
+    fastify: FastifyInstance
+): Promise<void> {
+    const lowerPayload = payload.toLowerCase();
+    
+    try {
+        // Handle main menu actions
+        if (lowerPayload === 'show_models') {
+            const models = await catalogService.getAllModels();
+            if (models.length === 0) {
+                await messenger.sendTextMessage(senderId, "Hmm, it looks like our catalog is empty right now. That's weird! Let me check on that for you. 🔧");
+                return;
+            }
+            const modelList = models.map(m => `• ${m.name} (${m.segment || 'Sedan'})`).join('\n');
+            await messenger.sendTextMessage(
+                senderId,
+                `Absolutely! Here's our complete Mitsubishi lineup 🚗✨\n\n${modelList}\n\nWhich one catches your eye? Just tell me the name and I'll show you all the details, photos, and pricing! Or if you're not sure what you're looking for, tell me what you need (like "family car" or "fuel efficient") and I'll help you pick! 😊`
+            );
+            return;
+        }
+        
+        if (lowerPayload === 'get_quote') {
+            const result = await quoteFlowService.startQuoteFlow(senderId);
+            if (result.quickReplies) {
+                await messenger.sendQuickReplies(senderId, result.message, result.quickReplies);
+            } else {
+                await messenger.sendTextMessage(senderId, result.message);
+            }
+            return;
+        }
+        
+        if (lowerPayload === 'view_photos') {
+            await messenger.sendTextMessage(
+                senderId,
+                '📸 I\'d love to show you photos! Which Mitsubishi model are you interested in?\n\nYou can say:\n• "Show me Xpander"\n• "Photos of Montero"\n• "Images of Mirage"\n• Or type "models" to see all available cars'
+            );
+            return;
+        }
+        
+        if (lowerPayload === 'ask_questions') {
+            await messenger.sendTextMessage(
+                senderId,
+                '❓ I\'m here to help answer your questions! You can ask me about:\n\n• Warranty coverage\n• Financing options\n• After-sales service\n• Features and specifications\n• Availability\n\nWhat would you like to know? 😊'
+            );
+            return;
+        }
+        
+        // Handle variant selections (from suggestions)
+        if (lowerPayload.startsWith('select_')) {
+            const variantName = payload.replace(/^select_/i, '').replace(/_/g, ' ');
+            const variant = await catalogService.searchVariantByName(variantName);
+            
+            if (variant) {
+                let response = `🚗 *${variant.model.name} ${variant.name}*\n`;
+                const price = Number(variant.srp).toLocaleString('en-PH', { style: 'currency', currency: 'PHP' });
+                response += `*Price:* ${price}\n`;
+                response += `*Transmission:* ${variant.transmission || 'N/A'}\n`;
+                response += `*Fuel:* ${variant.fuel || 'N/A'}\n\n`;
+                response += 'Reply with "photos", "specs", or "quote" for more details!';
+                await messenger.sendTextMessage(senderId, response);
+            }
+            return;
+        }
+        
+        // Handle quote flow quick replies
+        const inQuoteFlow = await quoteFlowService.isInQuoteFlow(senderId);
+        if (inQuoteFlow) {
+            const result = await quoteFlowService.processMessage(senderId, payload);
+            if (result.quickReplies) {
+                await messenger.sendQuickReplies(senderId, result.message, result.quickReplies);
+            } else {
+                await messenger.sendTextMessage(senderId, result.message);
+            }
+            return;
+        }
+        
+        // Default: treat as regular message
+        await messenger.sendTextMessage(senderId, `Received action: ${payload}`);
+    } catch (error) {
+        fastify.log.error({ error, senderId, payload }, 'Error handling quick reply');
+        await messenger.sendTextMessage(senderId, 'Sorry, something went wrong processing your selection. Please try again.');
+    }
+}
+
+async function handlePostback(
+    senderId: string,
+    payload: string,
+    messenger: MessengerService,
+    fastify: FastifyInstance
+): Promise<void> {
+    try {
+        // Handle View Specs postback from photo carousel
+        if (payload.startsWith('specs_')) {
+            const parts = payload.replace('specs_', '').split('_');
+            const query = parts.join(' ');
+            await handleSpecsRequest(senderId, query, messenger, fastify);
+            return;
+        }
+        
+        // Default postback handler
+        await messenger.sendTextMessage(senderId, `Action received: ${payload}`);
+    } catch (error) {
+        fastify.log.error({ error, senderId, payload }, 'Error handling postback');
+        await messenger.sendTextMessage(senderId, 'Sorry, something went wrong. Please try again.');
     }
 }

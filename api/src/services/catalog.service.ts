@@ -1,6 +1,8 @@
 import { PrismaClient, CarModel, CarVariant, CarMedia } from '@prisma/client';
+import { calculateSimilarity } from './nlp.utils';
 
 const prisma = new PrismaClient();
+const FUZZY_MATCH_THRESHOLD = 0.6;
 
 export interface CarModelWithVariants extends CarModel {
     variants: (CarVariant & { media: CarMedia[] })[];
@@ -20,7 +22,8 @@ export class CatalogService {
      * Get model with all variants
      */
     async getModelByName(name: string): Promise<CarModelWithVariants | null> {
-        return prisma.carModel.findFirst({
+        // Try exact/contains match first
+        const exactMatch = await prisma.carModel.findFirst({
             where: {
                 name: {
                     contains: name,
@@ -36,6 +39,35 @@ export class CatalogService {
                 },
             },
         });
+
+        if (exactMatch) {
+            return exactMatch;
+        }
+
+        // Fuzzy matching fallback
+        const allModels = await prisma.carModel.findMany({
+            include: {
+                variants: {
+                    include: {
+                        media: true,
+                    },
+                    orderBy: { srp: 'asc' },
+                },
+            },
+        });
+
+        let bestMatch: CarModelWithVariants | null = null;
+        let bestScore = 0;
+
+        for (const model of allModels) {
+            const score = calculateSimilarity(name.toLowerCase(), model.name.toLowerCase());
+            if (score > bestScore && score >= FUZZY_MATCH_THRESHOLD) {
+                bestScore = score;
+                bestMatch = model;
+            }
+        }
+
+        return bestMatch;
     }
 
     /**
@@ -135,6 +167,45 @@ export class CatalogService {
                 // If no specific variant match, return first variant of the model
                 return modelMatch.variants[0];
             }
+        }
+
+        // Fuzzy matching fallback - fetch all models with variants
+        const allModels = await prisma.carModel.findMany({
+            include: {
+                variants: {
+                    include: {
+                        media: true,
+                    },
+                },
+            },
+        });
+
+        let bestMatch: (CarVariant & { model: CarModel; media: CarMedia[] }) | null = null;
+        let bestScore = 0;
+        const queryLower = query.toLowerCase();
+
+        for (const model of allModels) {
+            for (const variant of model.variants) {
+                // Check various combinations for fuzzy matching
+                const combinations = [
+                    variant.name.toLowerCase(),
+                    model.name.toLowerCase(),
+                    `${model.name} ${variant.name}`.toLowerCase(),
+                    `${model.name} ${variant.name}`.toLowerCase().replace(/\s+/g, ''),
+                ];
+
+                for (const candidate of combinations) {
+                    const score = calculateSimilarity(queryLower, candidate);
+                    if (score > bestScore && score >= FUZZY_MATCH_THRESHOLD) {
+                        bestScore = score;
+                        bestMatch = { ...variant, model };
+                    }
+                }
+            }
+        }
+
+        if (bestMatch) {
+            return bestMatch;
         }
 
         // Fallback: search all variants

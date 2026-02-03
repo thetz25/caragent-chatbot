@@ -5,6 +5,16 @@ import { quoteFlowService } from '../services/quote-flow.service';
 import { createLLMService, LLMConfig } from '../services/llm.service';
 import { ragService } from '../services/rag.service';
 import { guardrailsService } from '../services/guardrails.service';
+import { 
+    cleanQuery, 
+    extractPhotoQuery, 
+    extractSpecQuery, 
+    extractQuoteQuery,
+    isPhotoRequest,
+    isSpecRequest,
+    isQuoteRequest,
+    generateNotFoundMessage
+} from '../services/nlp.utils';
 
 interface WebhookQuery {
     'hub.mode'?: string;
@@ -134,11 +144,11 @@ async function handleMessagingEvent(
                 }
             }
 
-            // Greetings
-            if (intent === 'greeting' || lowerMessage.includes('hi') || lowerMessage.includes('hello') || lowerMessage === 'start') {
+            // Greetings - warm and conversational
+            if (intent === 'greeting' || lowerMessage.includes('hi') || lowerMessage.includes('hello') || lowerMessage.includes('hey') || lowerMessage === 'start') {
                 await messenger.sendTextMessage(
                     senderId,
-                    'Hello! Welcome to Mitsubishi Motors. 🚗\n\nHow can I help you today?\n\n• Type "models" to see available cars\n• Type a model name (e.g., "Xpander") for details\n• Type "quote" to get a quotation\n• Ask me anything about Mitsubishi!'
+                    `Hey there! 👋 Welcome to Mitsubishi Motors! I'm your virtual assistant and I'm super excited to help you find your dream car! 🚗💨\n\nYou can chat with me naturally - ask me things like:\n\n🚙 "What Mitsubishi models do you have?"\n📸 "Show me photos of the Xpander"\n📋 "Tell me about Montero Sport specs"\n💰 "How much is the Mirage?"\n❓ "What's included in the warranty?"\n\nOr just tell me what you're looking for and I'll help you out! What brings you here today? 😊`
                 );
                 return;
             }
@@ -160,16 +170,18 @@ async function handleMessagingEvent(
                 return;
             }
 
-            // Quote request - start quote flow
-            if (intent === 'get_quote' || lowerMessage === 'quote' || lowerMessage.includes('get quote') || lowerMessage.includes('quotation')) {
-                const variantQuery = messageText.toLowerCase().replace(/quote|quotation|for|get/g, '').trim();
-                const result = await quoteFlowService.startQuoteFlow(senderId, variantQuery || entities?.variant || undefined);
+            // Quote request - start quote flow with natural language understanding
+            if (intent === 'get_quote' || isQuoteRequest(messageText)) {
+                // Priority: 1. LLM entity, 2. Extracted query from message
+                const variantQuery = entities?.variant || entities?.model || extractQuoteQuery(messageText) || undefined;
+                const result = await quoteFlowService.startQuoteFlow(senderId, variantQuery);
                 await messenger.sendTextMessage(senderId, result.message);
                 return;
             }
 
-            // Try to find a specific model
-            const model: CarModelWithVariants | null = await catalogService.getModelByName(entities?.model || messageText);
+            // Try to find a specific model with cleaned query
+            const searchQuery = entities?.model || cleanQuery(messageText);
+            const model: CarModelWithVariants | null = await catalogService.getModelByName(searchQuery);
             if (model && !intent) {
                 let response = `🚗 *${model.name}*\n${model.description || ''}\n\n*Variants:*\n`;
                 model.variants.forEach((v) => {
@@ -181,16 +193,18 @@ async function handleMessagingEvent(
                 return;
             }
 
-            // Photos request
-            if (intent === 'show_photos' || lowerMessage.startsWith('photos')) {
-                const query = messageText.replace(/photos/i, '').trim() || entities?.model || '';
+            // Photos request - with improved natural language understanding
+            if (intent === 'show_photos' || isPhotoRequest(messageText)) {
+                // Priority: 1. LLM entity, 2. Extracted query from message, 3. Cleaned full message
+                const query = entities?.model || entities?.variant || extractPhotoQuery(messageText) || cleanQuery(messageText);
                 await handlePhotosRequest(senderId, query, messenger, fastify);
                 return;
             }
 
-            // Specs request - with guardrails
-            if (intent === 'show_specs' || lowerMessage.startsWith('specs')) {
-                const query = messageText.replace(/specs/i, '').trim() || entities?.variant || entities?.model || '';
+            // Specs request - with guardrails and improved parsing
+            if (intent === 'show_specs' || isSpecRequest(messageText)) {
+                // Priority: 1. LLM entity, 2. Extracted query, 3. Cleaned message
+                const query = entities?.variant || entities?.model || extractSpecQuery(messageText) || cleanQuery(messageText);
                 const guardrailCheck = await guardrailsService.checkSpecsQuestion(query);
                 
                 if (!guardrailCheck.allowed) {
@@ -239,10 +253,10 @@ async function handleMessagingEvent(
                 }
             }
 
-            // Default fallback with helpful suggestions
+            // Default fallback with conversational tone
             await messenger.sendTextMessage(
                 senderId,
-                `I'm not sure what you're asking. Here are some things you can try:\n\n• "models" - see available cars\n• "Xpander" - get model details\n• "photos Xpander" - view images\n• "quote" - get a price quote\n• "What is the warranty?" - ask FAQs\n\nWhat would you like to know?`
+                `I'm here to help you find the perfect Mitsubishi! 🚗✨\n\nHere's what I can do for you:\n\n🚙 *Browse Cars* - Say "show me models" or "what cars do you have?"\n📸 *See Photos* - Ask "show me photos of Xpander" or "what does Montero look like?"\n📋 *Get Specs* - Ask "tell me about Xpander specs" or "what are the features?"\n💰 *Get a Quote* - Say "how much is Montero?" or "I want a quote for Xpander"\n❓ *Ask Questions* - "What's the warranty?" "Do you have financing?" etc.\n\nWhat are you looking for today? Feel free to ask naturally! 😊`
             );
         } else if (event.postback) {
             fastify.log.info({ senderId, postback: event.postback }, 'Received postback');
@@ -264,18 +278,21 @@ async function handlePhotosRequest(
         if (!query) {
             await messenger.sendTextMessage(
                 senderId,
-                '📸 To see photos, please specify a model.\n\nExamples:\n• "photos Xpander"\n• "photos Montero"'
+                '📸 I\'d love to show you photos! Which Mitsubishi model are you interested in?\n\nYou can say:\n• "Show me Xpander"\n• "Photos of Montero"\n• "Images of Mirage"\n• Or type "models" to see all available cars'
             );
             return;
         }
 
-        // Try to find model
+        // Try to find model with fuzzy matching
         const model: CarModelWithVariants | null = await catalogService.getModelByName(query);
         if (!model) {
-            await messenger.sendTextMessage(
-                senderId,
-                `❌ Couldn't find model matching "${query}".\n\nType "models" to see available cars.`
-            );
+            // Get all models for suggestions
+            const allModels = await catalogService.getAllModels();
+            const modelNames = allModels.map(m => m.name);
+            
+            // Generate conversational error message with suggestions
+            const errorMessage = generateNotFoundMessage(query, modelNames, 'car model');
+            await messenger.sendTextMessage(senderId, errorMessage);
             return;
         }
 
@@ -332,18 +349,26 @@ async function handleSpecsRequest(
         if (!query) {
             await messenger.sendTextMessage(
                 senderId,
-                '📋 To see specifications, please specify a variant.\n\nExamples:\n• "specs Xpander GLS A/T"\n• "specs Montero Black Series"'
+                '📋 I can share detailed specifications with you! Which variant would you like to know about?\n\nTry saying:\n• "What are the specs of Xpander GLS?"\n• "Tell me about Montero Sport features"\n• "Details of Mirage G4"\n• Or type a model name to see available variants'
             );
             return;
         }
 
-        // Search for variant by name
+        // Search for variant by name with fuzzy matching
         const variant = await catalogService.searchVariantByName(query);
         if (!variant) {
-            await messenger.sendTextMessage(
-                senderId,
-                `❌ Couldn't find variant matching "${query}".\n\nType a model name first to see available variants.`
-            );
+            // Try to get all variants for suggestions
+            const allModels = await catalogService.getAllModels();
+            const variantNames: string[] = [];
+            allModels.forEach(model => {
+                model.variants.forEach(v => {
+                    variantNames.push(`${model.name} ${v.name}`);
+                });
+            });
+            
+            // Generate conversational error message
+            const errorMessage = generateNotFoundMessage(query, variantNames.slice(0, 20), 'variant');
+            await messenger.sendTextMessage(senderId, errorMessage);
             return;
         }
 

@@ -197,6 +197,7 @@ async function handleMessagingEvent(
             if (intent === 'show_photos' || isPhotoRequest(messageText)) {
                 // Priority: 1. LLM entity, 2. Extracted query from message, 3. Cleaned full message
                 const query = entities?.model || entities?.variant || extractPhotoQuery(messageText) || cleanQuery(messageText);
+                console.log('Photo request - Original:', messageText, 'Extracted:', query);
                 await handlePhotosRequest(senderId, query, messenger, fastify);
                 return;
             }

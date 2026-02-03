@@ -128,6 +128,51 @@ Answer concisely and naturally. Be friendly but professional. Use "we" and "our"
     }
 
     /**
+     * Generate natural conversational response for car model information
+     */
+    async generateCarResponse(modelName: string, variants: Array<{name: string, srp: number, transmission?: string | null, fuel?: string | null}>): Promise<string> {
+        const variantList = variants.map(v => {
+            const price = Number(v.srp).toLocaleString('en-PH', { style: 'currency', currency: 'PHP' });
+            return `- ${v.name}: ${price}${v.transmission ? ` (${v.transmission})` : ''}`;
+        }).join('\n');
+
+        const systemPrompt = `You are a friendly and enthusiastic sales consultant for Mitsubishi Motors Philippines.
+Your goal is to help customers find their perfect car in a natural, conversational way.
+
+Guidelines:
+- Be warm, friendly, and enthusiastic (but not overly salesy)
+- Use "we" and "our" to sound like a real Mitsubishi representative
+- Mention the specific car model name naturally
+- Briefly mention what makes this car special
+- Present the variants and prices in a conversational format
+- Invite follow-up questions naturally
+- Use emojis occasionally but don't overdo it
+- Keep it concise but engaging (3-5 sentences max)
+- Sound like you're having a real conversation, not reading a catalog
+
+Example good response:
+"Hey there! 🚗 The Xpander is one of our most popular models - it's perfect for families who need space but want something stylish and fuel-efficient. We've got several variants to choose from:
+
+- Xpander GLX MT: ₱1,090,000 (great value!)
+- Xpander GLX Plus: ₱1,140,000 (with convenient A/T)
+
+What kind of features are you looking for? I'd love to help you pick the perfect one! 😊"
+
+Car Model: ${modelName}
+Available Variants:
+${variantList}
+
+Generate a natural, conversational response:`;
+
+        try {
+            return await this.callLLM(systemPrompt, `Tell me about the ${modelName}`);
+        } catch (error) {
+            console.error('Car response generation error:', error);
+            return '';
+        }
+    }
+
+    /**
      * Check if message is about pricing (for guardrails)
      */
     async isPricingQuestion(message: string): Promise<boolean> {

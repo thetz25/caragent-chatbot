@@ -166,15 +166,47 @@ export function extractSpecQuery(message: string): string {
  * @returns Cleaned search query
  */
 export function extractQuoteQuery(message: string): string {
-    let query = message.toLowerCase();
+    let query = message.toLowerCase().trim();
     
-    // Remove quote/price indicator words
-    QUOTE_INDICATORS.forEach(indicator => {
-        const regex = new RegExp(indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    // Sort indicators by length (longest first) to prevent partial matches
+    const sortedIndicators = [...QUOTE_INDICATORS].sort((a, b) => b.length - a.length);
+    
+    // Remove quote/price indicator words with word boundaries
+    sortedIndicators.forEach(indicator => {
+        const escaped = indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`\\b${escaped}\\b`, 'gi');
         query = query.replace(regex, ' ');
     });
     
-    // Clean the remaining text
+    // Remove common price request phrases
+    const phrasesToRemove = [
+        'how much is',
+        'how much does',
+        'how much for',
+        'what is the price of',
+        'what is the price',
+        'what is the cost of',
+        'what is the cost',
+        'what does it cost',
+        'price of',
+        'cost of',
+        'pricing for',
+        'i want to know',
+        'i want',
+        'tell me',
+        'give me',
+        'show me'
+    ];
+    
+    phrasesToRemove.forEach(phrase => {
+        const regex = new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        query = query.replace(regex, ' ');
+    });
+    
+    // Clean up extra whitespace
+    query = query.replace(/\s+/g, ' ').trim();
+    
+    // Clean the remaining text (removes stop words)
     return cleanQuery(query);
 }
 

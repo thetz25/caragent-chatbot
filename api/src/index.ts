@@ -18,6 +18,8 @@ const server = fastify({
     },
     // Trust proxy (needed when behind Caddy/Nginx)
     trustProxy: true,
+    // Increase body limit for large file serving
+    bodyLimit: 10485760, // 10MB
 });
 
 const start = async () => {
@@ -54,6 +56,7 @@ const start = async () => {
         await server.register(staticPlugin, {
             root: path.join(__dirname, '../uploads'),
             prefix: '/uploads/',
+            wildcard: false,
         });
 
         // Serve public files (admin panel, etc.)
@@ -61,6 +64,8 @@ const start = async () => {
             root: path.join(__dirname, '../public'),
             prefix: '/',
             decorateReply: false,  // Already decorated by uploads plugin
+            wildcard: false,
+            index: ['index.html'],
         });
 
         await server.listen({ port: 3000, host: '0.0.0.0' });

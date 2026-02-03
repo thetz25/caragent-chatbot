@@ -62,39 +62,100 @@ export function cleanQuery(query: string): string {
 
 /**
  * Extract search query from photo request
- * Handles: "photo of Montero", "show me pictures of Xpander", "images"
+ * Handles: "photo of Montero", "show me pictures of Xpander", "can I see photos of Strada"
  * @param message - Full user message
  * @returns Cleaned search query
  */
 export function extractPhotoQuery(message: string): string {
-    let query = message.toLowerCase();
+    let query = message.toLowerCase().trim();
     
-    // Remove photo indicator words
-    PHOTO_INDICATORS.forEach(indicator => {
-        const regex = new RegExp(indicator, 'gi');
+    // Sort indicators by length (longest first) to prevent partial matches
+    const sortedIndicators = [...PHOTO_INDICATORS].sort((a, b) => b.length - a.length);
+    
+    // Remove photo indicator words with word boundaries
+    sortedIndicators.forEach(indicator => {
+        const escaped = indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`\\b${escaped}\\b`, 'gi');
         query = query.replace(regex, ' ');
     });
     
-    // Clean the remaining text
+    // Remove common request phrases
+    const phrasesToRemove = [
+        'show me',
+        'can i see',
+        'let me see',
+        'i want to see',
+        'i want',
+        'send me',
+        'share',
+        'display',
+        'give me'
+    ];
+    
+    phrasesToRemove.forEach(phrase => {
+        const regex = new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        query = query.replace(regex, ' ');
+    });
+    
+    // Clean up extra whitespace
+    query = query.replace(/\s+/g, ' ').trim();
+    
+    // Clean the remaining text (removes stop words)
     return cleanQuery(query);
 }
 
 /**
  * Extract search query from spec request
- * Handles: "specs of Xpander", "what are the features of Montero"
+ * Handles: "specs of Xpander", "what are the features of Montero", "tell me about Montero Sport specs"
  * @param message - Full user message
  * @returns Cleaned search query
  */
 export function extractSpecQuery(message: string): string {
-    let query = message.toLowerCase();
+    let query = message.toLowerCase().trim();
     
-    // Remove spec indicator words
-    SPEC_INDICATORS.forEach(indicator => {
-        const regex = new RegExp(indicator, 'gi');
+    // Sort indicators by length (longest first) to prevent partial matches
+    const sortedIndicators = [...SPEC_INDICATORS].sort((a, b) => b.length - a.length);
+    
+    // Remove spec indicator words with word boundaries
+    sortedIndicators.forEach(indicator => {
+        const escaped = indicator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`\\b${escaped}\\b`, 'gi');
         query = query.replace(regex, ' ');
     });
     
-    // Clean the remaining text
+    // Remove common request phrases
+    const phrasesToRemove = [
+        'tell me about',
+        'what are the',
+        'what is the',
+        'give me the',
+        'show me the',
+        'show me',
+        'i want to know',
+        'i want',
+        'can you tell me',
+        'how about',
+        'looking for',
+        'search for',
+        'find me',
+        'do you have',
+        'information on',
+        'information about',
+        'details on',
+        'details about',
+        'can i see',
+        'let me see'
+    ];
+    
+    phrasesToRemove.forEach(phrase => {
+        const regex = new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        query = query.replace(regex, ' ');
+    });
+    
+    // Clean up extra whitespace
+    query = query.replace(/\s+/g, ' ').trim();
+    
+    // Clean the remaining text (removes stop words)
     return cleanQuery(query);
 }
 

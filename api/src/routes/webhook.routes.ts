@@ -358,13 +358,8 @@ async function handleSpecsRequest(
         const variant = await catalogService.searchVariantByName(query);
         if (!variant) {
             // Try to get all variants for suggestions
-            const allModels = await catalogService.getAllModels();
-            const variantNames: string[] = [];
-            allModels.forEach(model => {
-                model.variants.forEach(v => {
-                    variantNames.push(`${model.name} ${v.name}`);
-                });
-            });
+            const allVariants = await catalogService.getAllVariants();
+            const variantNames = allVariants.map(v => `${v.model.name} ${v.name}`);
             
             // Generate conversational error message
             const errorMessage = generateNotFoundMessage(query, variantNames.slice(0, 20), 'variant');

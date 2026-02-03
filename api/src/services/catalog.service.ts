@@ -19,6 +19,20 @@ export class CatalogService {
     }
 
     /**
+     * Get all variants with their models
+     */
+    async getAllVariants(): Promise<(CarVariant & { model: CarModel })[]> {
+        return prisma.carVariant.findMany({
+            include: {
+                model: true,
+            },
+            orderBy: {
+                model: { name: 'asc' },
+            },
+        });
+    }
+
+    /**
      * Get model with all variants
      */
     async getModelByName(name: string): Promise<CarModelWithVariants | null> {

@@ -1159,6 +1159,126 @@
             document.getElementById(modalId).classList.remove('active');
         }
 
+        // Edit Model - Open modal and populate data
+        function editModel(id) {
+            const model = modelsData.find(m => m.id === id);
+            if (!model) return;
+            
+            openModal('editModelModal');
+            document.getElementById('editModelId').value = model.id;
+            document.getElementById('editModelName').value = model.name;
+            document.getElementById('editModelSegment').value = model.segment || '';
+            document.getElementById('editModelDescription').value = model.description || '';
+            document.getElementById('editModelYear').value = model.year || '';
+        }
+
+        // Add Variant - Open modal for adding variant to model
+        function addVariant(modelId) {
+            openModal('addVariantModal');
+            document.getElementById('addVariantModelId').value = modelId;
+        }
+
+        // Edit Price - Quick price update for variant
+        function editPrice(variantId, currentPrice, name) {
+            const newPrice = prompt(`Update price for ${name}:`, currentPrice);
+            if (newPrice && !isNaN(newPrice)) {
+                apiCall(`/admin/variants/${variantId}/price`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ srp: parseFloat(newPrice) })
+                })
+                .then(() => {
+                    showAlert('Price updated successfully!', 'success');
+                    loadCars();
+                })
+                .catch(err => showAlert('Failed to update price: ' + err.message, 'error'));
+            }
+        }
+
+        // Add Variant Field - Add another variant input in Add Model modal
+        function addVariantField() {
+            const container = document.getElementById('variantsContainer');
+            const div = document.createElement('div');
+            div.className = 'variant-form';
+            div.style.borderTop = '2px solid #e0e0e0';
+            div.style.marginTop = '20px';
+            div.style.paddingTop = '20px';
+            div.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong>Additional Variant</strong>
+                    <button onclick="this.closest('.variant-form').remove()" style="color: red; border: none; background: none; cursor: pointer;">Remove</button>
+                </div>
+                <div class="form-group">
+                    <label>Variant Name *</label>
+                    <input type="text" class="variant-name" placeholder="e.g., GLS Sport">
+                </div>
+                <div class="form-group">
+                    <label>Price (SRP) *</label>
+                    <input type="number" class="variant-price" placeholder="1000000">
+                </div>
+                <div class="form-group">
+                    <label>Transmission</label>
+                    <select class="variant-transmission">
+                        <option value="">Select</option>
+                        <option value="A/T">Automatic (A/T)</option>
+                        <option value="M/T">Manual (M/T)</option>
+                        <option value="CVT">CVT</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Fuel Type</label>
+                    <select class="variant-fuel">
+                        <option value="">Select</option>
+                        <option value="Gasoline">Gasoline</option>
+                        <option value="Diesel">Diesel</option>
+                        <option value="Hybrid">Hybrid</option>
+                        <option value="Electric">Electric</option>
+                    </select>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        // View Quote - Open modal with quote details
+        async function viewQuote(id) {
+            openModal('viewQuoteModal');
+            const container = document.getElementById('quoteModalDetails');
+            container.innerHTML = '<div class="loading"></div>';
+            
+            try {
+                const data = await apiCall(`/admin/quotes/${id}`);
+                const quote = data.quote;
+                container.innerHTML = `
+                    <div class="form-group">
+                        <label>User ID</label>
+                        <input type="text" value="${quote.user?.id || 'Unknown'}" readonly style="background: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>Car</label>
+                        <input type="text" value="${quote.variant.model.name} ${quote.variant.name}" readonly style="background: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>Price</label>
+                        <input type="text" value="₱${Number(quote.variant.srp).toLocaleString()}" readonly style="background: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <input type="text" value="${quote.status}" readonly style="background: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="text" value="${new Date(quote.createdAt).toLocaleString()}" readonly style="background: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label>Details</label>
+                        <textarea rows="5" readonly style="background: #f5f5f5; font-family: monospace;">${JSON.stringify(quote.details, null, 2)}</textarea>
+                    </div>
+                `;
+            } catch (err) {
+                container.innerHTML = `<div class="alert alert-error">Failed to load quote: ${err.message}</div>`;
+            }
+        }
+
         // Edit Model Form Submission
         async function submitEditModel() {
             const id = parseInt(document.getElementById('editModelId').value);

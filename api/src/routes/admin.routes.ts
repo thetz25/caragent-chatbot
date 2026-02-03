@@ -243,6 +243,34 @@ export async function adminRoutes(fastify: FastifyInstance) {
         }
     });
 
+    // Update variant specs
+    fastify.put('/variants/:id/specs', async (request: FastifyRequest<{
+        Params: { id: string };
+        Body: { specs: any }
+    }>, reply: FastifyReply) => {
+        if (!(await authenticateAdmin(request, reply))) return;
+
+        try {
+            const variantId = parseInt(request.params.id);
+            const { specs } = request.body;
+
+            const variant = await prisma.carVariant.update({
+                where: { id: variantId },
+                data: { specs },
+                include: { model: true },
+            });
+
+            reply.send({ 
+                success: true, 
+                message: `Specs updated for ${variant.model.name} ${variant.name}`,
+                variant 
+            });
+        } catch (error) {
+            fastify.log.error(error);
+            reply.code(500).send({ error: 'Failed to update specs', details: (error as Error).message });
+        }
+    });
+
     // ==========================================
     // 4. VIEW QUOTES/BOOKINGS
     // ==========================================
@@ -356,6 +384,198 @@ export async function adminRoutes(fastify: FastifyInstance) {
         } catch (error) {
             fastify.log.error(error);
             reply.code(500).send({ error: 'Failed to update quote status', details: (error as Error).message });
+        }
+    });
+
+    // ==========================================
+    // DELETE OPERATIONS
+    // ==========================================
+    
+    // Delete car model
+    fastify.delete('/models/:id', async (request: FastifyRequest<{ Params: { id: string }}>, reply: FastifyReply) => {
+        if (!(await authenticateAdmin(request, reply))) return;
+
+        try {
+            const modelId = parseInt(request.params.id);
+            
+            // Delete all variants and their media first
+            const variants = await prisma.carVariant.findMany({ where: { modelId } });
+            
+            for (const variant of variants) {
+                await prisma.carMedia.deleteMany({ where: { variantId: variant.id } });
+                await prisma.carVariant.delete({ where: { id: variant.id } });
+            }
+            
+            // Delete the model
+            await prisma.carModel.delete({ where: { id: modelId } });
+
+            reply.send({ success: true, message: 'Model deleted successfully' });
+        } catch (error) {
+            fastify.log.error(error);
+            reply.code(500).send({ error: 'Failed to delete model', details: (error as Error).message });
+        }
+    });
+
+    // Delete car variant
+    fastify.delete('/variants/:id', async (request: FastifyRequest<{ Params: { id: string }}>, reply: FastifyReply) => {
+        if (!(await authenticateAdmin(request, reply))) return;
+
+        try {
+            const variantId = parseInt(request.params.id);
+            
+            // Delete all media for this variant
+            await prisma.carMedia.deleteMany({ where: { variantId } });
+            
+            // Delete the variant
+            await prisma.carVariant.delete({ where: { id: variant.id } });
+
+            reply.send({ success: true, message: 'Variant deleted successfully' });
+        } catch (error) {
+            fastify.log.error(error);
+            reply.code(500).send({ error: 'Failed to delete variant', details: (error as Error).message });
+        }
+    });
+
+    // Get all media (with optional filtering)
+    fastify.get('/media', async (request: FastifyRequest<{ Querystring: {
+        variantId?: string;
+        modelId?: string;
+    }}>, reply: FastifyReply) => {
+        if (!(await authenticateAdmin(request, reply))) return;
+
+        const { variantId, modelId } = request.query;
+        const where: any = {};
+
+        if (variantId) where.variantId = parseInt(variantId);
+        if (modelId) where.modelId = parseInt(modelId);
+
+        const media = await prisma.carMedia.findMany({
+            where,
+            include: {
+                variant: {
+                    include: {
+                        model: true
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        reply.send({ media });
+    });
+
+    // Delete media file
+    fastify.delete('/media/:id', async (request: FastifyRequest<{ Params: { id: string }}>, reply: FastifyReply) => {
+        if (!(await authenticateAdmin(request, reply))) return;
+
+        try {
+            const mediaId = parseInt(request.params.id);
+            
+            // Delete the media record
+            await prisma.carMedia.delete({ where: { id: mediaId } });
+
+            reply.send({ success: true, message: 'Media deleted successfully' });
+        } catch (error) {
+            fastify.log.error(error);
+            reply.code(500).send({ error: 'Failed to delete media', details: (error as Error).message });
+        }
+    });
+
+    // Get all users/sessions
+    fastify.get('/users', async (request: FastifyRequest, reply: FastifyReply) => {
+        if (!(await authenticateAdmin(request, reply))) return;
+
+        const sessions = await prisma.session.findMany({
+            orderBy: { lastSeen: 'desc' },
+            take: 100 // Limit to recent sessions
+        });
+
+        reply.send({ users: sessions });
+    });
+
+    // Get all FAQs
+    fastify.get('/faqs', async (request: FastifyRequest, reply: FastifyReply) => {
+        if (!(await authenticateAdmin(request, reply))) return;
+
+        const faqs = await prisma.FAQ.findMany({
+            orderBy: { category: 'asc', question: 'asc' }
+        });
+
+        reply.send({ faqs });
+    });
+
+    // Add new FAQ
+    fastify.post('/faqs', async (request: FastifyRequest<{ Body: {
+        question: string;
+        answer: string;
+        category: string;
+    }}>, reply: FastifyReply) => {
+        if (!(await authenticateAdmin(request, reply))) return;
+
+        try {
+            const { question, answer, category } = request.body;
+
+            const faq = await prisma.FAQ.create({
+                data: {
+                    question,
+                    answer,
+                    category,
+                    keywords: [question.toLowerCase(), answer.toLowerCase(), category.toLowerCase()]
+                }
+            });
+
+            reply.send({ success: true, faq });
+        } catch (error) {
+            fastify.log.error(error);
+            reply.code(500).send({ error: 'Failed to add FAQ', details: (error as Error).message });
+        }
+    });
+
+    // Delete FAQ
+    fastify.delete('/faqs/:id', async (request: FastifyRequest<{ Params: { id: string }}>, reply: FastifyReply) => {
+        if (!(await authenticateAdmin(request, reply))) return;
+
+        try {
+            const faqId = parseInt(request.params.id);
+            
+            await prisma.FAQ.delete({ where: { id: faqId } });
+
+            reply.send({ success: true, message: 'FAQ deleted successfully' });
+        } catch (error) {
+            fastify.log.error(error);
+            reply.code(500).send({ error: 'Failed to delete FAQ', details: (error as Error).message });
+        }
+    });
+
+    // Update existing FAQ
+    fastify.put('/faqs/:id', async (request: FastifyRequest<{ 
+        Params: { id: string };
+        Body: {
+            question?: string;
+            answer?: string;
+            category?: string;
+        }
+    }>, reply: FastifyReply) => {
+        if (!(await authenticateAdmin(request, reply))) return;
+
+        try {
+            const faqId = parseInt(request.params.id);
+            const { question, answer, category } = request.body;
+
+            const faq = await prisma.FAQ.update({
+                where: { id: faqId },
+                data: {
+                    question,
+                    answer,
+                    category,
+                    keywords: [question?.toLowerCase(), answer?.toLowerCase(), category?.toLowerCase()]
+                }
+            });
+
+            reply.send({ success: true, faq });
+        } catch (error) {
+            fastify.log.error(error);
+            reply.code(500).send({ error: 'Failed to update FAQ', details: (error as Error).message });
         }
     });
 

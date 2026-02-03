@@ -1,0 +1,19 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+# Install TypeScript globally for compilation
+RUN npm install -g typescript
+
+# Compile TypeScript during container startup
+RUN npx tsc || true
+
+EXPOSE 3000
+
+# Use a script to ensure dist exists before starting
+CMD ["sh", "-c", "npx tsc && node dist/index.js"]

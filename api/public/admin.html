@@ -1,0 +1,1898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Agent Admin Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            text-align: center;
+            font-size: 28px;
+        }
+        
+        .header p {
+            text-align: center;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        
+        /* Login Screen */
+        .login-screen {
+            max-width: 400px;
+            margin: 100px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .login-screen h2 {
+            margin-bottom: 20px;
+            text-align: center;
+            color: #667eea;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+        }
+        
+        /* Navigation */
+        .nav-tabs {
+            display: flex;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .nav-tab {
+            flex: 1;
+            padding: 15px 20px;
+            text-align: center;
+            cursor: pointer;
+            background: white;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+        }
+        
+        .nav-tab:hover {
+            background: #f8f9fa;
+            color: #667eea;
+        }
+        
+        .nav-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card .number {
+            font-size: 36px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        /* Content Sections */
+        .section {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        .section h2 {
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        /* Car Models List */
+        .car-list {
+            display: grid;
+            gap: 20px;
+        }
+        
+        .car-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            transition: border-color 0.3s;
+        }
+        
+        .car-card:hover {
+            border-color: #667eea;
+        }
+        
+        .car-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .car-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .car-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+        
+        .variants-list {
+            margin-top: 15px;
+            padding-left: 20px;
+        }
+        
+        .variant-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .variant-info {
+            flex: 1;
+        }
+        
+        .variant-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .variant-price {
+            color: #667eea;
+            font-weight: 700;
+            font-size: 18px;
+        }
+        
+        /* Upload Area */
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            background: #fafafa;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .upload-text {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .upload-hint {
+            font-size: 14px;
+            color: #999;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        /* Quotes Table */
+        .quotes-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .quotes-table th,
+        .quotes-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .quotes-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .quotes-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-generated {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-sent {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .status-accepted {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h3 {
+            font-size: 24px;
+            color: #333;
+        }
+        
+        .close-btn {
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            background: none;
+            border: none;
+        }
+        
+        .close-btn:hover {
+            color: #333;
+        }
+        
+        /* Alerts */
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-tabs {
+                flex-direction: column;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .car-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .variant-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-screen">
+        <h2>🔐 Admin Login</h2>
+        <div id="loginError" class="alert alert-error" style="display: none;"></div>
+        <div class="form-group">
+            <label>Domain</label>
+            <input type="text" id="domainInput" placeholder="chatbot.yourdomain.com" value="chatbot.mcdonnellresorts.com">
+        </div>
+        <div class="form-group">
+            <label>Admin API Key</label>
+            <input type="password" id="apiKeyInput" placeholder="Enter your admin key">
+        </div>
+        <button class="btn" onclick="login()" style="width: 100%;">Login</button>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" style="display: none;">
+        <div class="header">
+            <div class="container">
+                <h1>🚗 Car Agent Admin Panel</h1>
+                <p>Manage car inventory, upload photos, and track bookings</p>
+            </div>
+        </div>
+
+        <div class="container">
+            <div id="globalAlert"></div>
+            
+            <!-- Navigation -->
+            <div class="nav-tabs">
+                <button class="nav-tab active" onclick="showSection('dashboard')">📊 Dashboard</button>
+                <button class="nav-tab" onclick="showSection('cars')">🚗 Car Models</button>
+                <button class="nav-tab" onclick="showSection('upload')">📸 Upload Photos</button>
+                <button class="nav-tab" onclick="showSection('quotes')">📋 Bookings</button>
+                <button class="nav-tab" onclick="showSection('users')">👥 Users</button>
+                <button class="nav-tab" onclick="showSection('faqs')">❓ FAQs</button>
+                <button class="nav-tab" onclick="showSection('tools')">🛠️ Tools</button>
+            </div>
+
+            <!-- Dashboard Section -->
+            <div id="dashboard" class="section active">
+                <h2>Dashboard Overview</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Car Models</h3>
+                        <div class="number" id="statModels">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Variants</h3>
+                        <div class="number" id="statVariants">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Bookings</h3>
+                        <div class="number" id="statQuotes">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Photos</h3>
+                        <div class="number" id="statPhotos">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Recent Bookings (7 days)</h3>
+                        <div class="number" id="statRecent">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Car Models Section -->
+            <div id="cars" class="section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>Car Models & Variants</h2>
+                    <button class="btn btn-success" onclick="openModal('addModelModal')">+ Add New Model</button>
+                </div>
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <input type="text" id="carSearch" placeholder="🔍 Search models and variants..." 
+                        style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px;"
+                        oninput="filterCars(this.value)">
+                </div>
+                <div id="carList" class="car-list">
+                    <div class="loading"></div>
+                </div>
+            </div>
+
+            <!-- Upload Section -->
+            <div id="upload" class="section">
+                <h2>Upload Car Photos</h2>
+                <div class="form-group">
+                    <label>Select Car Variant</label>
+                    <select id="uploadVariantSelect">
+                        <option value="">Loading variants...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Photo Label (optional)</label>
+                    <input type="text" id="photoLabel" placeholder="e.g., Front View, Side Profile">
+                </div>
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">Click or drag photos here</div>
+                    <div class="upload-hint">Supports: JPG, PNG, WEBP</div>
+                    <input type="file" id="fileInput" class="file-input" accept="image/*" multiple onchange="handleFileSelect(event)">
+                </div>
+                <div id="uploadPreview" style="margin-top: 20px;"></div>
+                <button class="btn btn-success" onclick="uploadFiles()" style="width: 100%; margin-top: 20px; display: none;" id="uploadBtn">Upload Photos</button>
+            </div>
+
+            <!-- Quotes Section -->
+            <div id="quotes" class="section">
+                <h2>Booking Requests</h2>
+                <div id="quotesList">
+                    <div class="loading"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Model Modal -->
+    <div id="addModelModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Car Model</h3>
+                <button class="close-btn" onclick="closeModal('addModelModal')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>Model Name *</label>
+                <input type="text" id="newModelName" placeholder="e.g., Xpander">
+            </div>
+            <div class="form-group">
+                <label>Segment</label>
+                <input type="text" id="newModelSegment" placeholder="e.g., MPV, SUV, Sedan">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="newModelDescription" rows="3" placeholder="Brief description of the model"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Year</label>
+                <input type="number" id="newModelYear" placeholder="2024">
+            </div>
+            <h4 style="margin: 20px 0 10px;">Variants</h4>
+            <div id="variantsContainer">
+                <div class="variant-form">
+                    <div class="form-group">
+                        <label>Variant Name *</label>
+                        <input type="text" class="variant-name" placeholder="e.g., GLS Sport">
+                    </div>
+                    <div class="form-group">
+                        <label>Price (SRP) *</label>
+                        <input type="number" class="variant-price" placeholder="1000000">
+                    </div>
+                    <div class="form-group">
+                        <label>Transmission</label>
+                        <select class="variant-transmission">
+                            <option value="">Select</option>
+                            <option value="A/T">Automatic (A/T)</option>
+                            <option value="M/T">Manual (M/T)</option>
+                            <option value="CVT">CVT</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Fuel Type</label>
+                        <select class="variant-fuel">
+                            <option value="">Select</option>
+                            <option value="Gasoline">Gasoline</option>
+                            <option value="Diesel">Diesel</option>
+                            <option value="Hybrid">Hybrid</option>
+                            <option value="Electric">Electric</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-secondary" onclick="addVariantField()" style="margin: 10px 0;">+ Add Another Variant</button>
+            <button class="btn btn-success" onclick="submitNewModel()" style="width: 100%; margin-top: 20px;">Create Model</button>
+    <!-- Edit Model Modal -->
+    <div id="editModelModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Car Model</h3>
+                <button class="close-btn" onclick="closeModal('editModelModal')">&times;</button>
+            </div>
+            <input type="hidden" id="editModelId">
+            <div class="form-group">
+                <label>Model Name *</label>
+                <input type="text" id="editModelName" placeholder="e.g., Xpander">
+            </div>
+            <div class="form-group">
+                <label>Segment</label>
+                <input type="text" id="editModelSegment" placeholder="e.g., MPV, SUV, Sedan">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="editModelDescription" rows="3" placeholder="Brief description of the model"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Year</label>
+                <input type="number" id="editModelYear" placeholder="2024">
+            </div>
+            <button class="btn btn-success" onclick="submitEditModel()" style="width: 100%; margin-top: 20px;">Update Model</button>
+        </div>
+    </div>
+
+    <!-- Add Variant Modal -->
+    <div id="addVariantModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Variant to Model</h3>
+                <button class="close-btn" onclick="closeModal('addVariantModal')">&times;</button>
+            </div>
+            <input type="hidden" id="addVariantModelId">
+            <div class="form-group">
+                <label>Variant Name *</label>
+                <input type="text" id="addVariantName" placeholder="e.g., GLS Sport">
+            </div>
+            <div class="form-group">
+                <label>Price (SRP) *</label>
+                <input type="number" id="addVariantPrice" placeholder="1000000">
+            </div>
+            <div class="form-group">
+                <label>Transmission</label>
+                <select id="addVariantTransmission">
+                    <option value="">Select</option>
+                    <option value="A/T">Automatic (A/T)</option>
+                    <option value="M/T">Manual (M/T)</option>
+                    <option value="CVT">CVT</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Fuel Type</label>
+                <select id="addVariantFuel">
+                    <option value="">Select</option>
+                    <option value="Gasoline">Gasoline</option>
+                    <option value="Diesel">Diesel</option>
+                    <option value="Hybrid">Hybrid</option>
+                    <option value="Electric">Electric</option>
+                </select>
+            </div>
+            <button class="btn btn-success" onclick="submitAddVariant()" style="width: 100%; margin-top: 20px;">Add Variant</button>
+        </div>
+    </div>
+
+    <!-- View Quote Modal -->
+    <div id="viewQuoteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Quote Details</h3>
+                <button class="close-btn" onclick="closeModal('viewQuoteModal')">&times;</button>
+            </div>
+            <div id="quoteModalDetails">
+                <div class="loading"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Media Management Modal -->
+    <div id="mediaModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Media Management</h3>
+                <button class="close-btn" onclick="closeModal('mediaModal')">&times;</button>
+            </div>
+            <div id="mediaList" style="max-height: 400px; overflow-y: auto;">
+                <div class="loading"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Specs Modal -->
+    <div id="editSpecsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Variant Specs - <span id="editSpecsVariantName"></span></h3>
+                <button class="close-btn" onclick="closeModal('editSpecsModal')">&times;</button>
+            </div>
+            <input type="hidden" id="editSpecsVariantId">
+            <div class="form-group">
+                <label>Specs (JSON format)</label>
+                <textarea id="specsJson" rows="10" placeholder='{"engine": "1.5L", "power": "105 HP", "torque": "141 Nm", "seating": "7 seats"}'></textarea>
+                <small style="color: #666;">Enter valid JSON object with car specifications</small>
+            </div>
+            <button class="btn btn-success" onclick="submitEditSpecs()" style="width: 100%;">Update Specs</button>
+        </div>
+    </div>
+
+    <!-- User Management Section -->
+    <div id="users" class="section">
+        <h2>User Sessions</h2>
+        <div id="usersList">
+            <div class="loading"></div>
+        </div>
+    </div>
+
+    <!-- FAQ Management Section -->
+    <div id="faqs" class="section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2>FAQ Management</h2>
+            <button class="btn btn-success" onclick="addFaq()">+ Add FAQ</button>
+        </div>
+        <div id="faqsList">
+            <div class="loading"></div>
+        </div>
+    </div>
+
+    <!-- Tools Section -->
+    <div id="tools" class="section">
+        <h2>Import / Export Tools</h2>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">
+            <!-- Export Card -->
+            <div class="stat-card" style="text-align: left;">
+                <h3>📥 Export Data</h3>
+                <p style="margin: 10px 0; color: #666;">Download all car models, variants, and FAQs as JSON.</p>
+                <button class="btn" onclick="exportData()" style="width: 100%;">Export All Data</button>
+            </div>
+            
+            <!-- Import Card -->
+            <div class="stat-card" style="text-align: left;">
+                <h3>📤 Import Data</h3>
+                <p style="margin: 10px 0; color: #666;">Import car models and variants from JSON file.</p>
+                <input type="file" id="importFile" accept=".json" style="margin-bottom: 10px; width: 100%;">
+                <button class="btn btn-success" onclick="importData()" style="width: 100%;">Import Data</button>
+            </div>
+            
+            <!-- Bulk Price Update -->
+            <div class="stat-card" style="text-align: left;">
+                <h3>💰 Bulk Price Update</h3>
+                <p style="margin: 10px 0; color: #666;">Update multiple variant prices at once.</p>
+                <button class="btn" onclick="showBulkPriceUpdate()" style="width: 100%;">Open Price Editor</button>
+            </div>
+        </div>
+        
+        <div id="bulkPriceSection" style="display: none; margin-top: 30px;">
+            <h3>Bulk Price Editor</h3>
+            <p style="color: #666; margin-bottom: 15px;">Edit prices in the table below and click "Save All Changes"</p>
+            <div id="bulkPriceTable" style="overflow-x: auto;">
+                <div class="loading"></div>
+            </div>
+            <button class="btn btn-success" onclick="saveBulkPrices()" style="margin-top: 15px;">Save All Changes</button>
+        </div>
+    </div>
+
+    <script>
+        // Login
+        function login() {
+            const domain = document.getElementById('domainInput').value.trim();
+            const key = document.getElementById('apiKeyInput').value.trim();
+            
+            if (!domain || !key) {
+                showLoginError('Please enter both domain and API key');
+                return;
+            }
+            
+            API_BASE = `https://${domain}`;
+            ADMIN_KEY = key;
+            
+            // Test the key
+            fetch(`${API_BASE}/admin/stats`, {
+                headers: { 'x-admin-key': ADMIN_KEY }
+            })
+            .then(res => {
+                if (res.ok) {
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('mainApp').style.display = 'block';
+                    loadDashboard();
+                } else {
+                    showLoginError('Invalid API key or domain');
+                }
+            })
+            .catch(err => {
+                showLoginError('Cannot connect to server. Check domain.');
+            });
+        }
+
+        function showLoginError(msg) {
+            const errorDiv = document.getElementById('loginError');
+            errorDiv.textContent = msg;
+            errorDiv.style.display = 'block';
+        }
+
+        // Navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            
+            document.getElementById(sectionId).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Load data for section
+            if (sectionId === 'dashboard') loadDashboard();
+            if (sectionId === 'cars') loadCars();
+            if (sectionId === 'upload') loadVariantsForUpload();
+            if (sectionId === 'quotes') loadQuotes();
+            if (sectionId === 'users') showUsersSection();
+            if (sectionId === 'faqs') showFaqsSection();
+            if (sectionId === 'tools') {
+                // Tools section loads on demand, no initial data needed
+            }
+        }
+
+        // API Calls
+        async function apiCall(endpoint, options = {}) {
+            const res = await fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                headers: {
+                    'x-admin-key': ADMIN_KEY,
+                    ...options.headers
+                }
+            });
+            
+            if (!res.ok) {
+                const error = await res.text();
+                throw new Error(error);
+            }
+            
+            return res.json();
+        }
+
+        // Dashboard
+        async function loadDashboard() {
+            try {
+                const data = await apiCall('/admin/stats');
+                document.getElementById('statModels').textContent = data.stats.totalModels;
+                document.getElementById('statVariants').textContent = data.stats.totalVariants;
+                document.getElementById('statQuotes').textContent = data.stats.totalQuotes;
+                document.getElementById('statPhotos').textContent = data.stats.totalPhotos;
+                document.getElementById('statRecent').textContent = data.stats.recentQuotes;
+            } catch (err) {
+                showAlert('Failed to load dashboard: ' + err.message, 'error');
+            }
+        }
+
+        // Cars Section
+        async function loadCars() {
+            try {
+                const data = await apiCall('/admin/models');
+                modelsData = data.models;
+                renderCarList(data.models);
+            } catch (err) {
+                document.getElementById('carList').innerHTML = `<div class="alert alert-error">Failed to load cars: ${err.message}</div>`;
+            }
+        }
+
+        function renderCarList(models) {
+            const container = document.getElementById('carList');
+            
+            if (models.length === 0) {
+                container.innerHTML = '<p>No car models found. Add your first model!</p>';
+                return;
+            }
+            
+            container.innerHTML = models.map(model => `
+                <div class="car-card">
+                    <div class="car-header">
+                        <div>
+                            <div class="car-title">${model.name}</div>
+                            <small>${model.segment || 'No segment'} • ${model.year || 'N/A'}</small>
+                            <p style="margin-top: 5px; color: #666;">${model.description || ''}</p>
+                        </div>
+                        <div class="car-actions">
+                            <button class="btn btn-small" onclick="editModel(${model.id})">Edit</button>
+                            <button class="btn btn-small btn-success" onclick="addVariant(${model.id})">+ Variant</button>
+                            <button class="btn btn-small btn-danger" onclick="deleteModel(${model.id})">Delete</button>
+                        </div>
+                    </div>
+                    <div class="variants-list">
+                        ${model.variants.map(v => `
+                            <div class="variant-item">
+                                <div class="variant-info">
+                                    <div class="variant-name">${v.name}</div>
+                                    <small>${v.transmission || 'N/A'} • ${v.fuel || 'N/A'}</small>
+                                    ${v.media && v.media.length > 0 ? `
+                                        <div style="margin-top: 8px;">
+                                            ${v.media.slice(0, 3).map(m => `
+                                                <img src="${m.url}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; margin-right: 5px; cursor: pointer;" onclick="viewMedia('${m.url}')" title="${m.label || 'Photo'}">
+                                            `).join('')}
+                                            ${v.media.length > 3 ? `<span style="color: #667eea; font-size: 12px;">+${v.media.length - 3} more</span>` : ''}
+                                        </div>
+                                    ` : '<small style="color: #999;">No photos</small>'}
+                                </div>
+                                <div style="text-align: right;">
+                                    <div class="variant-price">₱${Number(v.srp).toLocaleString()}</div>
+                                    <div style="margin-top: 8px;">
+                                        <button class="btn btn-small" onclick="editPrice(${v.id}, ${v.srp}, '${v.name}')">Price</button>
+                                        <button class="btn btn-small" onclick="editSpecs(${v.id}, '${v.name}')">Specs</button>
+                                        <button class="btn btn-small btn-danger" onclick="deleteVariant(${v.id})">Delete</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Filter cars based on search query
+        function filterCars(query) {
+            if (!query) {
+                renderCarList(modelsData);
+                return;
+            }
+            
+            const lowerQuery = query.toLowerCase();
+            
+            const filtered = modelsData.filter(model => {
+                // Check if model name, segment, or description matches
+                const modelMatch = model.name.toLowerCase().includes(lowerQuery) ||
+                    (model.segment && model.segment.toLowerCase().includes(lowerQuery)) ||
+                    (model.description && model.description.toLowerCase().includes(lowerQuery));
+                
+                // Check if any variant matches
+                const variantMatch = model.variants.some(v => 
+                    v.name.toLowerCase().includes(lowerQuery) ||
+                    (v.transmission && v.transmission.toLowerCase().includes(lowerQuery)) ||
+                    (v.fuel && v.fuel.toLowerCase().includes(lowerQuery))
+                );
+                
+                return modelMatch || variantMatch;
+            });
+            
+            renderCarList(filtered);
+        }
+
+        // Upload Section
+        async function loadVariantsForUpload() {
+            try {
+                const data = await apiCall('/admin/models');
+                const select = document.getElementById('uploadVariantSelect');
+                
+                select.innerHTML = '<option value="">Select a variant...</option>';
+                
+                data.models.forEach(model => {
+                    model.variants.forEach(variant => {
+                        const option = document.createElement('option');
+                        option.value = variant.id;
+                        option.textContent = `${model.name} - ${variant.name}`;
+                        select.appendChild(option);
+                    });
+                });
+            } catch (err) {
+                showAlert('Failed to load variants: ' + err.message, 'error');
+            }
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        }
+
+        function handleFileSelect(e) {
+            handleFiles(e.target.files);
+        }
+
+        function handleFiles(files) {
+            selectedFiles = Array.from(files);
+            const preview = document.getElementById('uploadPreview');
+            const uploadBtn = document.getElementById('uploadBtn');
+            
+            if (selectedFiles.length === 0) {
+                preview.innerHTML = '';
+                uploadBtn.style.display = 'none';
+                return;
+            }
+            
+            preview.innerHTML = selectedFiles.map((file, i) => `
+                <div style="display: inline-block; margin: 5px; padding: 10px; background: #f0f0f0; border-radius: 5px;">
+                    📷 ${file.name} (${(file.size / 1024).toFixed(1)} KB)
+                    <button onclick="removeFile(${i})" style="margin-left: 10px; color: red; border: none; background: none; cursor: pointer;">✕</button>
+                </div>
+            `).join('');
+            
+            uploadBtn.style.display = 'block';
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            handleFiles(selectedFiles);
+        }
+
+        async function uploadFiles() {
+            const variantId = document.getElementById('uploadVariantSelect').value;
+            const label = document.getElementById('photoLabel').value;
+            
+            if (!variantId) {
+                showAlert('Please select a car variant', 'error');
+                return;
+            }
+            
+            if (selectedFiles.length === 0) {
+                showAlert('Please select files to upload', 'error');
+                return;
+            }
+            
+            const uploadBtn = document.getElementById('uploadBtn');
+            uploadBtn.innerHTML = '<div class="loading"></div> Uploading...';
+            uploadBtn.disabled = true;
+            
+            try {
+                for (const file of selectedFiles) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('variantId', variantId);
+                    if (label) formData.append('label', label);
+                    
+                    await fetch(`${API_BASE}/admin/upload`, {
+                        method: 'POST',
+                        headers: { 'x-admin-key': ADMIN_KEY },
+                        body: formData
+                    });
+                }
+                
+                showAlert(`Successfully uploaded ${selectedFiles.length} photo(s)!`, 'success');
+                selectedFiles = [];
+                document.getElementById('uploadPreview').innerHTML = '';
+                uploadBtn.style.display = 'none';
+                document.getElementById('photoLabel').value = '';
+            } catch (err) {
+                showAlert('Upload failed: ' + err.message, 'error');
+            } finally {
+                uploadBtn.innerHTML = 'Upload Photos';
+                uploadBtn.disabled = false;
+            }
+        }
+
+        // Quotes Section
+        async function loadQuotes() {
+            try {
+                const data = await apiCall('/admin/quotes');
+                renderQuotes(data.quotes);
+            } catch (err) {
+                document.getElementById('quotesList').innerHTML = `<div class="alert alert-error">Failed to load quotes: ${err.message}</div>`;
+            }
+        }
+
+        function renderQuotes(quotes) {
+            const container = document.getElementById('quotesList');
+            
+            if (quotes.length === 0) {
+                container.innerHTML = '<p>No booking requests yet.</p>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <table class="quotes-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>User</th>
+                            <th>Car</th>
+                            <th>Price</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${quotes.map(q => `
+                            <tr>
+                                <td>${new Date(q.createdAt).toLocaleDateString()}</td>
+                                <td>${q.user?.id?.substring(0, 15) || 'Unknown'}...</td>
+                                <td>${q.variant.model.name} ${q.variant.name}</td>
+                                <td>₱${Number(q.variant.srp).toLocaleString()}</td>
+                                <td><span class="status-badge status-${q.status.toLowerCase()}">${q.status}</span></td>
+                                <td>
+                                    <button class="btn btn-small" onclick="viewQuote('${q.id}')">View</button>
+                                    ${q.status === 'GENERATED' ? `<button class="btn btn-small btn-success" onclick="updateQuoteStatus('${q.id}', 'SENT')">Mark Sent</button>` : ''}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // Modal Functions
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Edit Model Form Submission
+        async function submitEditModel() {
+            const id = parseInt(document.getElementById('editModelId').value);
+            const name = document.getElementById('editModelName').value;
+            const segment = document.getElementById('editModelSegment').value;
+            const description = document.getElementById('editModelDescription').value;
+            const year = document.getElementById('editModelYear').value;
+            
+            if (!name) {
+                showAlert('Model name is required', 'error');
+                return;
+            }
+            
+            try {
+                await apiCall(`/admin/models/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        segment,
+                        description,
+                        year: year ? parseInt(year) : null,
+                    })
+                });
+                
+                showAlert('Model updated successfully!', 'success');
+                closeModal('editModelModal');
+                loadCars();
+            } catch (err) {
+                showAlert('Failed to update model: ' + err.message, 'error');
+            }
+        }
+
+        // Add Variant Form Submission
+        async function submitAddVariant() {
+            const modelId = parseInt(document.getElementById('addVariantModelId').value);
+            const name = document.getElementById('addVariantName').value;
+            const srp = parseFloat(document.getElementById('addVariantPrice').value);
+            const transmission = document.getElementById('addVariantTransmission').value;
+            const fuel = document.getElementById('addVariantFuel').value;
+            
+            if (!name || isNaN(srp)) {
+                showAlert('Variant name and price are required', 'error');
+                return;
+            }
+            
+            try {
+                await apiCall(`/admin/models/${modelId}/variants`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        srp,
+                        transmission,
+                        fuel,
+                    })
+                });
+                
+                showAlert('Variant added successfully!', 'success');
+                closeModal('addVariantModal');
+                loadCars();
+            } catch (err) {
+                showAlert('Failed to add variant: ' + err.message, 'error');
+            }
+        }
+
+        // Enhanced upload with media management
+        async function uploadFiles() {
+            const variantId = document.getElementById('uploadVariantSelect').value;
+            const label = document.getElementById('photoLabel').value;
+            
+            if (!variantId) {
+                showAlert('Please select a car variant', 'error');
+                return;
+            }
+            
+            if (selectedFiles.length === 0) {
+                showAlert('Please select files to upload', 'error');
+                return;
+            }
+            
+            const uploadBtn = document.getElementById('uploadBtn');
+            uploadBtn.innerHTML = '<div class="loading"></div> Uploading...';
+            uploadBtn.disabled = true;
+            
+            try {
+                for (const file of selectedFiles) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('variantId', variantId);
+                    if (label) formData.append('label', label);
+                    
+                    await fetch(`${API_BASE}/admin/upload`, {
+                        method: 'POST',
+                        headers: { 'x-admin-key': ADMIN_KEY },
+                        body: formData
+                    });
+                }
+                
+                showAlert(`Successfully uploaded ${selectedFiles.length} photo(s)!`, 'success');
+                selectedFiles = [];
+                document.getElementById('uploadPreview').innerHTML = '';
+                uploadBtn.style.display = 'none';
+                document.getElementById('photoLabel').value = '';
+            } catch (err) {
+                showAlert('Upload failed: ' + err.message, 'error');
+            } finally {
+                uploadBtn.innerHTML = 'Upload Photos';
+                uploadBtn.disabled = false;
+            }
+        }
+
+        async function submitNewModel() {
+            const name = document.getElementById('newModelName').value;
+            const segment = document.getElementById('newModelSegment').value;
+            const description = document.getElementById('newModelDescription').value;
+            const year = document.getElementById('newModelYear').value;
+            
+            if (!name) {
+                showAlert('Model name is required', 'error');
+                return;
+            }
+            
+            const variants = [];
+            document.querySelectorAll('.variant-form').forEach(form => {
+                const vName = form.querySelector('.variant-name').value;
+                const vPrice = form.querySelector('.variant-price').value;
+                if (vName && vPrice) {
+                    variants.push({
+                        name: vName,
+                        srp: parseFloat(vPrice),
+                        transmission: form.querySelector('.variant-transmission').value,
+                        fuel: form.querySelector('.variant-fuel').value
+                    });
+                }
+            });
+            
+            if (variants.length === 0) {
+                showAlert('At least one variant is required', 'error');
+                return;
+            }
+            
+            try {
+                await apiCall('/admin/models', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        segment,
+                        description,
+                        year: year ? parseInt(year) : null,
+                        variants
+                    })
+                });
+                
+                showAlert('Car model created successfully!', 'success');
+                closeModal('addModelModal');
+                loadCars();
+                
+                // Reset form
+                document.getElementById('newModelName').value = '';
+                document.getElementById('newModelSegment').value = '';
+                document.getElementById('newModelDescription').value = '';
+                document.getElementById('newModelYear').value = '';
+                document.querySelectorAll('.variant-form').forEach((form, i) => {
+                    if (i > 0) form.remove();
+                });
+            } catch (err) {
+                showAlert('Failed to create model: ' + err.message, 'error');
+            }
+        }
+
+        // Utilities
+        function showAlert(message, type) {
+            const alertDiv = document.getElementById('globalAlert');
+            alertDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => {
+                alertDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        // Edit Model Form Submission
+        async function submitEditModel() {
+            const id = parseInt(document.getElementById('editModelId').value);
+            const name = document.getElementById('editModelName').value;
+            const segment = document.getElementById('editModelSegment').value;
+            const description = document.getElementById('editModelDescription').value;
+            const year = document.getElementById('editModelYear').value;
+            
+            if (!name) {
+                showAlert('Model name is required', 'error');
+                return;
+            }
+            
+            try {
+                await apiCall(`/admin/models/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        segment,
+                        description,
+                        year: year ? parseInt(year) : null,
+                    })
+                });
+                
+                showAlert('Model updated successfully!', 'success');
+                closeModal('editModelModal');
+                loadCars();
+            } catch (err) {
+                showAlert('Failed to update model: ' + err.message, 'error');
+            }
+        }
+
+        // Add Variant Form Submission
+        async function submitAddVariant() {
+            const modelId = parseInt(document.getElementById('addVariantModelId').value);
+            const name = document.getElementById('addVariantName').value;
+            const srp = parseFloat(document.getElementById('addVariantPrice').value);
+            const transmission = document.getElementById('addVariantTransmission').value;
+            const fuel = document.getElementById('addVariantFuel').value;
+            
+            if (!name || isNaN(srp)) {
+                showAlert('Variant name and price are required', 'error');
+                return;
+            }
+            
+            try {
+                await apiCall(`/admin/models/${modelId}/variants`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        srp,
+                        transmission,
+                        fuel,
+                    })
+                });
+                
+                showAlert('Variant added successfully!', 'success');
+                closeModal('addVariantModal');
+                loadCars();
+            } catch (err) {
+                showAlert('Failed to add variant: ' + err.message, 'error');
+            }
+        }
+
+        // Enhanced upload with media management
+        async function uploadFiles() {
+            const variantId = document.getElementById('uploadVariantSelect').value;
+            const label = document.getElementById('photoLabel').value;
+            
+            if (!variantId) {
+                showAlert('Please select a car variant', 'error');
+                return;
+            }
+            
+            if (selectedFiles.length === 0) {
+                showAlert('Please select files to upload', 'error');
+                return;
+            }
+            
+            const uploadBtn = document.getElementById('uploadBtn');
+            uploadBtn.innerHTML = '<div class="loading"></div> Uploading...';
+            uploadBtn.disabled = true;
+            
+            try {
+                for (const file of selectedFiles) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('variantId', variantId);
+                    if (label) formData.append('label', label);
+                    
+                    await fetch(`${API_BASE}/admin/upload`, {
+                        method: 'POST',
+                        headers: { 'x-admin-key': ADMIN_KEY },
+                        body: formData
+                    });
+                }
+                
+                showAlert(`Successfully uploaded ${selectedFiles.length} photo(s)!`, 'success');
+                selectedFiles = [];
+                document.getElementById('uploadPreview').innerHTML = '';
+                uploadBtn.style.display = 'none';
+                document.getElementById('photoLabel').value = '';
+            } catch (err) {
+                showAlert('Upload failed: ' + err.message, 'error');
+            } finally {
+                uploadBtn.innerHTML = 'Upload Photos';
+                uploadBtn.disabled = false;
+            }
+        }
+
+        // Delete Model
+        async function deleteModel(id) {
+            if (confirm('Are you sure you want to delete this model and all its variants?')) {
+                try {
+                    await apiCall(`/admin/models/${id}`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    showAlert('Model deleted successfully!', 'success');
+                    loadCars();
+                } catch (err) {
+                    showAlert('Failed to delete model: ' + err.message, 'error');
+                }
+            }
+        }
+
+        // Delete Variant
+        async function deleteVariant(id) {
+            if (confirm('Are you sure you want to delete this variant?')) {
+                try {
+                    await apiCall(`/admin/variants/${id}`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    showAlert('Variant deleted successfully!', 'success');
+                    loadCars();
+                } catch (err) {
+                    showAlert('Failed to delete variant: ' + err.message, 'error');
+                }
+            }
+        }
+
+        // Enhanced media management
+        async function loadMedia(variantId) {
+            try {
+                const data = await apiCall(`/admin/media?variantId=${variantId}`);
+                return data.media;
+            } catch (err) {
+                showAlert('Failed to load media: ' + err.message, 'error');
+                return [];
+            }
+        }
+
+        async function deleteMedia(mediaId) {
+            if (confirm('Are you sure you want to delete this media file?')) {
+                try {
+                    await apiCall(`/admin/media/${mediaId}`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    showAlert('Media deleted successfully!', 'success');
+                    loadCars();
+                } catch (err) {
+                    showAlert('Failed to delete media: ' + err.message, 'error');
+                }
+            }
+        }
+
+        // User management
+        async function loadUsers() {
+            try {
+                const data = await apiCall(`/admin/users`);
+                return data.users;
+            } catch (err) {
+                showAlert('Failed to load users: ' + err.message, 'error');
+                return [];
+            }
+        }
+
+        // FAQ management
+        async function loadFaqs() {
+            try {
+                const data = await apiCall(`/admin/faqs`);
+                return data.faqs;
+            } catch (err) {
+                showAlert('Failed to load FAQs: ' + err.message, 'error');
+                return [];
+            }
+        }
+
+        async function addFaq() {
+            const question = prompt('Enter FAQ question:');
+            const answer = prompt('Enter FAQ answer:');
+            const category = prompt('Enter category (e.g., Warranty, Financing):');
+            
+            if (question && answer && category) {
+                try {
+                    await apiCall(`/admin/faqs`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ question, answer, category })
+                    });
+                    showAlert('FAQ added successfully!', 'success');
+                    loadFaqs();
+                } catch (err) {
+                    showAlert('Failed to add FAQ: ' + err.message, 'error');
+                }
+            }
+        }
+
+        async function deleteFaq(id) {
+            if (confirm('Are you sure you want to delete this FAQ?')) {
+                try {
+                    await apiCall(`/admin/faqs/${id}`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    showAlert('FAQ deleted successfully!', 'success');
+                    loadFaqs();
+                } catch (err) {
+                    showAlert('Failed to delete FAQ: ' + err.message, 'error');
+                }
+            }
+        }
+
+        // View Media in full size
+        function viewMedia(url) {
+            window.open(url, '_blank');
+        }
+
+        // Edit Specs Modal
+        function editSpecs(variantId, variantName) {
+            openModal('editSpecsModal');
+            document.getElementById('editSpecsVariantId').value = variantId;
+            document.getElementById('editSpecsVariantName').textContent = variantName;
+            
+            // Find the variant and load current specs
+            const variant = modelsData.flatMap(m => m.variants).find(v => v.id === variantId);
+            if (variant && variant.specs) {
+                document.getElementById('specsJson').value = JSON.stringify(variant.specs, null, 2);
+            } else {
+                document.getElementById('specsJson').value = '{}';
+            }
+        }
+
+        // Submit Specs Update
+        async function submitEditSpecs() {
+            const variantId = parseInt(document.getElementById('editSpecsVariantId').value);
+            const specsText = document.getElementById('specsJson').value;
+            
+            try {
+                const specs = JSON.parse(specsText);
+                
+                await apiCall(`/admin/variants/${variantId}/specs`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ specs })
+                });
+                
+                showAlert('Specs updated successfully!', 'success');
+                closeModal('editSpecsModal');
+                loadCars();
+            } catch (err) {
+                if (err instanceof SyntaxError) {
+                    showAlert('Invalid JSON format. Please check your syntax.', 'error');
+                } else {
+                    showAlert('Failed to update specs: ' + err.message, 'error');
+                }
+            }
+        }
+
+        function updateQuoteStatus(id, status) {
+            apiCall(`/admin/quotes/${id}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status })
+            })
+            .then(() => {
+                showAlert(`Quote marked as ${status}`, 'success');
+                loadQuotes();
+            })
+            .catch(err => showAlert('Failed to update status: ' + err.message, 'error'));
+        }
+
+        // ====================
+        // IMPORT/EXPORT TOOLS
+        // ====================
+        
+        // Export all data
+        async function exportData() {
+            try {
+                const [modelsData, faqsData] = await Promise.all([
+                    apiCall('/admin/models'),
+                    apiCall('/admin/faqs')
+                ]);
+                
+                const exportData = {
+                    exportedAt: new Date().toISOString(),
+                    models: modelsData.models,
+                    faqs: faqsData.faqs
+                };
+                
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `car-data-export-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showAlert('Data exported successfully!', 'success');
+            } catch (err) {
+                showAlert('Failed to export data: ' + err.message, 'error');
+            }
+        }
+        
+        // Import data
+        async function importData() {
+            const fileInput = document.getElementById('importFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showAlert('Please select a JSON file to import', 'error');
+                return;
+            }
+            
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                
+                if (!data.models || !Array.isArray(data.models)) {
+                    showAlert('Invalid import file: models array not found', 'error');
+                    return;
+                }
+                
+                // Confirm import
+                const modelCount = data.models.length;
+                const variantCount = data.models.reduce((sum, m) => sum + (m.variants?.length || 0), 0);
+                
+                if (!confirm(`Import ${modelCount} models with ${variantCount} variants? This will add to existing data.`)) {
+                    return;
+                }
+                
+                // Import each model
+                let imported = 0;
+                for (const model of data.models) {
+                    try {
+                        await apiCall('/admin/models', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                name: model.name,
+                                segment: model.segment,
+                                description: model.description,
+                                year: model.year,
+                                variants: model.variants?.map(v => ({
+                                    name: v.name,
+                                    srp: v.srp,
+                                    transmission: v.transmission,
+                                    fuel: v.fuel,
+                                    specs: v.specs || {}
+                                })) || []
+                            })
+                        });
+                        imported++;
+                    } catch (err) {
+                        console.error(`Failed to import model ${model.name}:`, err);
+                    }
+                }
+                
+                showAlert(`Successfully imported ${imported} models!`, 'success');
+                fileInput.value = '';
+                loadCars();
+            } catch (err) {
+                showAlert('Failed to import data: ' + err.message, 'error');
+            }
+        }
+        
+        // Show bulk price update UI
+        async function showBulkPriceUpdate() {
+            const section = document.getElementById('bulkPriceSection');
+            const table = document.getElementById('bulkPriceTable');
+            
+            if (section.style.display === 'none') {
+                section.style.display = 'block';
+                
+                // Load all variants
+                const data = await apiCall('/admin/models');
+                const allVariants = [];
+                
+                data.models.forEach(model => {
+                    model.variants.forEach(variant => {
+                        allVariants.push({
+                            ...variant,
+                            modelName: model.name
+                        });
+                    });
+                });
+                
+                // Render table
+                table.innerHTML = `
+                    <table class="quotes-table" id="priceEditTable">
+                        <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th>Variant</th>
+                                <th>Current Price</th>
+                                <th>New Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${allVariants.map(v => `
+                                <tr data-variant-id="${v.id}">
+                                    <td>${v.modelName}</td>
+                                    <td>${v.name}</td>
+                                    <td>₱${Number(v.srp).toLocaleString()}</td>
+                                    <td>
+                                        <input type="number" class="price-input" data-variant-id="${v.id}" 
+                                            value="${v.srp}" style="width: 150px; padding: 5px;">
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else {
+                section.style.display = 'none';
+            }
+        }
+        
+        // Save bulk price updates
+        async function saveBulkPrices() {
+            const inputs = document.querySelectorAll('.price-input');
+            const updates = [];
+            
+            inputs.forEach(input => {
+                const variantId = input.dataset.variantId;
+                const newPrice = parseFloat(input.value);
+                const oldPrice = parseFloat(input.getAttribute('value'));
+                
+                if (newPrice !== oldPrice) {
+                    updates.push({ variantId: parseInt(variantId), srp: newPrice });
+                }
+            });
+            
+            if (updates.length === 0) {
+                showAlert('No price changes to save', 'info');
+                return;
+            }
+            
+            if (!confirm(`Update ${updates.length} variant prices?`)) {
+                return;
+            }
+            
+            let saved = 0;
+            for (const update of updates) {
+                try {
+                    await apiCall(`/admin/variants/${update.variantId}/price`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ srp: update.srp })
+                    });
+                    saved++;
+                } catch (err) {
+                    console.error(`Failed to update price for variant ${update.variantId}:`, err);
+                }
+            }
+            
+            showAlert(`Successfully updated ${saved} prices!`, 'success');
+            loadCars();
+            showBulkPriceUpdate(); // Refresh the table
+        }
+
+        // Show users section
+        async function showUsersSection() {
+            const users = await loadUsers();
+            const container = document.getElementById('usersList');
+            
+            if (users.length === 0) {
+                container.innerHTML = '<p>No user sessions found.</p>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <table class="quotes-table">
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>Last Seen</th>
+                            <th>State</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${users.map(u => `
+                            <tr>
+                                <td>${u.id.substring(0, 20)}...</td>
+                                <td>${new Date(u.lastSeen).toLocaleString()}</td>
+                                <td>${JSON.stringify(u.state || {}).substring(0, 50)}...</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // Show FAQs section
+        async function showFaqsSection() {
+            const faqs = await loadFaqs();
+            const container = document.getElementById('faqsList');
+            
+            if (faqs.length === 0) {
+                container.innerHTML = '<p>No FAQs found. Add your first FAQ!</p>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <table class="quotes-table">
+                    <thead>
+                        <tr>
+                            <th>Question</th>
+                            <th>Category</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${faqs.map(faq => `
+                            <tr>
+                                <td>${faq.question.substring(0, 50)}...</td>
+                                <td>${faq.category}</td>
+                                <td>
+                                    <button class="btn btn-small" onclick="editFaq(${faq.id})">Edit</button>
+                                    <button class="btn btn-small btn-danger" onclick="deleteFaq(${faq.id})">Delete</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // Edit FAQ function
+        function editFaq(id) {
+            showAlert('Edit FAQ feature coming soon', 'info');
+        }
+
+        // Enter key login
+        document.getElementById('apiKeyInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') login();
+        });
+    </script>
+</body>
+</html>

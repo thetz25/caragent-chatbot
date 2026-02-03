@@ -49,6 +49,7 @@ const start = async () => {
         await server.register(staticPlugin, {
             root: path.join(__dirname, '../public'),
             prefix: '/',
+            decorateReply: false,  // Already decorated by uploads plugin
         });
 
         await server.listen({ port: 3000, host: '0.0.0.0' });

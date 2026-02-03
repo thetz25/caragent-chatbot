@@ -45,6 +45,12 @@ const start = async () => {
             prefix: '/uploads/',
         });
 
+        // Serve public files (admin panel, etc.)
+        await server.register(staticPlugin, {
+            root: path.join(__dirname, '../public'),
+            prefix: '/',
+        });
+
         await server.listen({ port: 3000, host: '0.0.0.0' });
         console.log('Server running on http://localhost:3000');
     } catch (err) {

@@ -334,16 +334,27 @@ export function generateNotFoundMessage(
         .slice(0, 3)
         .map(item => item.option);
     
-    let message = `I couldn't find a ${context} matching "${query}". `;
+    // More conversational and friendly error messages
+    const friendlyOpeners = [
+        "Hmm, I don't see that exact one in our lineup. 🤔",
+        "I couldn't find that specific model, but let me help! 😊",
+        "That doesn't ring a bell, but I might have something similar! 🚗",
+        "I don't think we have that exact model, but check these out! 👇"
+    ];
+    
+    // Pick a random opener for variety
+    const opener = friendlyOpeners[Math.floor(Math.random() * friendlyOpeners.length)];
+    
+    let message = `${opener}\n\n`;
     
     if (suggestions.length > 0) {
-        message += `Did you mean:\n`;
+        message += `Did you mean one of these?\n`;
         suggestions.forEach((suggestion, i) => {
-            message += `${i + 1}. ${suggestion}\n`;
+            message += `• ${suggestion}\n`;
         });
-        message += `\nOr type "models" to see all available cars.`;
+        message += `\nJust type the name and I'll show you all the details! Or say "show all models" to see everything we have. 😊`;
     } else {
-        message += `\n\nType "models" to see our complete lineup, or ask me anything about Mitsubishi vehicles!`;
+        message += `Try saying "show all models" to see our complete lineup, or tell me what you're looking for (like "family SUV" or "fuel efficient car") and I'll help you find the perfect match! 🚗✨`;
     }
     
     return message;

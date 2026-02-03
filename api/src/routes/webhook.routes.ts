@@ -153,20 +153,20 @@ async function handleMessagingEvent(
                 return;
             }
 
-            // Show all models
+            // Show all models - conversational
             if (intent === 'show_models' || lowerMessage.includes('models') || lowerMessage.includes('available') || lowerMessage.includes('cars')) {
                 const models = await catalogService.getAllModels();
                 if (models.length === 0) {
-                    await messenger.sendTextMessage(senderId, 'No models found in our catalog yet.');
+                    await messenger.sendTextMessage(senderId, "Hmm, it looks like our catalog is empty right now. That's weird! Let me check on that for you. 🔧");
                     return;
                 }
 
-                let response = '🚗 *Available Models:*\n\n';
-                models.forEach((model) => {
-                    response += `• ${model.name} (${model.segment || 'Sedan'})\n`;
-                });
-                response += '\nType a model name to see variants and prices!';
-                await messenger.sendTextMessage(senderId, response);
+                const modelList = models.map(m => `• ${m.name} (${m.segment || 'Sedan'})`).join('\n');
+                
+                await messenger.sendTextMessage(
+                    senderId,
+                    `Absolutely! Here's our complete Mitsubishi lineup 🚗✨\n\n${modelList}\n\nWhich one catches your eye? Just tell me the name and I'll show you all the details, photos, and pricing! Or if you're not sure what you're looking for, tell me what you need (like "family car" or "fuel efficient") and I'll help you pick! 😊`
+                );
                 return;
             }
 
